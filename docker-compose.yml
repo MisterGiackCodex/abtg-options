@@ -6,4 +6,4 @@ services:
     environment:
       NODE_ENV: production
     ports:
-      - "127.0.0.1:3050:3050"
+      - "127.0.0.1:3060:3060"

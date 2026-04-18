@@ -17,5 +17,5 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/.next ./.next
 COPY --from=build /app/public ./public
 COPY --from=build /app/next.config.js ./
-EXPOSE 3050
-CMD ["npx", "next", "start", "-p", "3050"]
+EXPOSE 3060
+CMD ["npx", "next", "start", "-p", "3060"]

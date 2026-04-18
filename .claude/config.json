@@ -4,5 +4,5 @@
   "vps_user": "root",
   "vps_path": "/var/www/abtg-options",
   "domain": "opzioni.mistergiack.dev",
-  "port": 3050
+  "port": 3060
 }
