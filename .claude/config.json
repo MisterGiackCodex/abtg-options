@@ -1,0 +1,8 @@
+{
+  "subdomain": "opzioni",
+  "vps_host": "144.91.90.41",
+  "vps_user": "root",
+  "vps_path": "/var/www/abtg-options",
+  "domain": "opzioni.mistergiack.dev",
+  "port": 3050
+}

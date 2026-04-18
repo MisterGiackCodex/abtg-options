@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background: #0b0d12;
+  color: #e8e9ee;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+.abtg-card {
+  @apply bg-abtg-surface border border-abtg-border rounded-lg;
+}
+
+.abtg-input {
+  @apply bg-abtg-bg border border-abtg-border rounded px-3 py-2 text-abtg-text w-full focus:outline-none focus:border-abtg-gold transition;
+}
+
+.abtg-btn {
+  @apply px-4 py-2 rounded border border-abtg-border bg-abtg-surface hover:border-abtg-gold transition text-sm;
+}
+
+.abtg-btn-primary {
+  @apply px-4 py-2 rounded bg-abtg-gold text-abtg-bg font-semibold hover:bg-abtg-goldDim transition text-sm;
+}
+
+.abtg-tab {
+  @apply px-4 py-2 border-b-2 border-transparent text-abtg-muted hover:text-abtg-text cursor-pointer transition;
+}
+
+.abtg-tab-active {
+  @apply border-abtg-gold text-abtg-gold;
+}
+
+.abtg-label {
+  @apply text-xs uppercase tracking-wide text-abtg-muted mb-1 block;
+}
+
+.abtg-metric {
+  @apply text-lg font-semibold text-abtg-text;
+}
+
+/* Print styles for trade reports */
+@media print {
+  body {
+    background: white !important;
+    color: #1a1a1a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  header, footer, nav, .abtg-btn, button, .abtg-tab {
+    display: none !important;
+  }
+  .abtg-card, .bg-abtg-surface {
+    border-color: #ccc !important;
+    background: white !important;
+  }
+  .text-abtg-text { color: #1a1a1a !important; }
+  .text-abtg-muted { color: #666 !important; }
+  .text-abtg-gold { color: #b8960f !important; }
+}

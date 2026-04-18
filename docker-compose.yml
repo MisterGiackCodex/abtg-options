@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    container_name: abtg-options
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+    ports:
+      - "127.0.0.1:3050:3050"
