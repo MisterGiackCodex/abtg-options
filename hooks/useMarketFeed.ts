@@ -4,7 +4,7 @@ import { type TickerQuote, startPolling } from "@/lib/data/marketFeed";
 
 export type FeedStatus = "idle" | "loading" | "live" | "error";
 
-export function useMarketFeed(symbol: string | null, intervalMs = 15_000) {
+export function useMarketFeed(symbol: string | null, intervalMs = 5_000) {
   const [quote, setQuote] = useState<TickerQuote | null>(null);
   const [status, setStatus] = useState<FeedStatus>("idle");
   const [error, setError] = useState<string | null>(null);

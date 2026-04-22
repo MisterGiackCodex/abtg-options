@@ -25,6 +25,18 @@ const statusLabel: Record<FeedStatus, string> = {
   error: "Errore",
 };
 
+function QuoteAge({ ts }: { ts: number }) {
+  const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
+  useEffect(() => {
+    const id = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const age = Math.max(0, now - ts);
+  const label = age < 60 ? `${age}s fa` : age < 3600 ? `${Math.floor(age / 60)}m fa` : `${Math.floor(age / 3600)}h fa`;
+  const color = age < 60 ? "text-abtg-profit" : age < 900 ? "text-yellow-400" : "text-abtg-loss";
+  return <span className={`text-[10px] font-mono ${color}`} title="Età ultimo dato">● {label}</span>;
+}
+
 const POPULAR = ["SPY", "QQQ", "AAPL", "NVDA", "TSLA", "MSFT"];
 const RECENT_KEY = "abtg.recentTickers";
 const MAX_RECENT = 6;
@@ -167,9 +179,7 @@ export function TickerBar({ quote, status, error, onConnect, onDisconnect }: Tic
 
       {error && !quote && <span className="text-xs text-abtg-loss ml-auto">{error}</span>}
 
-      {status === "live" && (
-        <span className="text-[10px] text-abtg-muted">~15min delay</span>
-      )}
+      {status === "live" && quote && <QuoteAge ts={quote.timestamp} />}
     </div>
   );
 }
