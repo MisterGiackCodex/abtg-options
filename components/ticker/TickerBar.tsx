@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FeedStatus } from "@/hooks/useMarketFeed";
 import type { TickerQuote } from "@/lib/data/marketFeed";
 
@@ -25,37 +25,117 @@ const statusLabel: Record<FeedStatus, string> = {
   error: "Errore",
 };
 
+const POPULAR = ["SPY", "QQQ", "AAPL", "NVDA", "TSLA", "MSFT"];
+const RECENT_KEY = "abtg.recentTickers";
+const MAX_RECENT = 6;
+
+function loadRecent(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecent(list: string[]) {
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+  } catch {}
+}
+
 export function TickerBar({ quote, status, error, onConnect, onDisconnect }: TickerBarProps) {
   const [input, setInput] = useState("");
+  const [recent, setRecent] = useState<string[]>([]);
+  const [focused, setFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const connected = status === "live" || status === "loading";
+
+  useEffect(() => { setRecent(loadRecent()); }, []);
+
+  const switchTo = (sym: string) => {
+    const s = sym.trim().toUpperCase();
+    if (!s) return;
+    onConnect(s);
+    setInput("");
+    inputRef.current?.blur();
+    setRecent((prev) => {
+      const next = [s, ...prev.filter((x) => x !== s)].slice(0, MAX_RECENT);
+      saveRecent(next);
+      return next;
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const sym = input.trim().toUpperCase();
-    if (sym) onConnect(sym);
+    switchTo(input);
   };
+
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      setInput("");
+      inputRef.current?.blur();
+    }
+  };
+
+  const suggestions = input
+    ? [...recent, ...POPULAR.filter((p) => !recent.includes(p))]
+        .filter((s) => s.startsWith(input.toUpperCase()) && s !== input.toUpperCase())
+        .slice(0, 6)
+    : [];
 
   return (
     <div className="bg-abtg-surface border border-abtg-border rounded-lg px-4 py-3 flex items-center gap-4 flex-wrap">
-      <form onSubmit={handleSubmit} className="flex items-center gap-2">
+      <form onSubmit={handleSubmit} className="flex items-center gap-2 relative">
         <input
+          ref={inputRef}
           type="text"
-          placeholder="Ticker (es. AAPL)"
+          placeholder="Cerca ticker (Enter)"
           value={input}
           onChange={(e) => setInput(e.target.value.toUpperCase())}
-          className="abtg-input w-32 text-sm"
-          disabled={connected}
+          onKeyDown={handleKey}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setTimeout(() => setFocused(false), 150)}
+          className="abtg-input w-40 text-sm"
+          autoComplete="off"
+          spellCheck={false}
         />
-        {connected ? (
-          <button type="button" onClick={onDisconnect} className="abtg-btn text-xs bg-abtg-loss/20 text-abtg-loss hover:bg-abtg-loss/30">
-            Disconnetti
-          </button>
-        ) : (
-          <button type="submit" className="abtg-btn text-xs" disabled={!input.trim()}>
-            Connetti
-          </button>
+        {focused && suggestions.length > 0 && (
+          <div className="absolute top-full left-0 mt-1 bg-abtg-surface border border-abtg-border rounded shadow-lg z-20 w-40">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); switchTo(s); }}
+                className="w-full text-left px-3 py-1.5 text-xs hover:bg-abtg-bg font-mono"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         )}
       </form>
+
+      <div className="flex items-center gap-1 flex-wrap">
+        {(recent.length > 0 ? recent : POPULAR).slice(0, MAX_RECENT).map((s) => {
+          const active = quote?.symbol === s;
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => switchTo(s)}
+              className={`text-xs font-mono px-2 py-1 rounded border transition-colors ${
+                active
+                  ? "bg-abtg-gold/20 text-abtg-gold border-abtg-gold/40"
+                  : "bg-abtg-bg text-abtg-muted border-abtg-border hover:border-abtg-gold/40 hover:text-abtg-text"
+              }`}
+            >
+              {s}
+            </button>
+          );
+        })}
+      </div>
 
       <div className="flex items-center gap-2">
         <span className={`w-2 h-2 rounded-full ${statusDot[status]}`} />
@@ -71,13 +151,24 @@ export function TickerBar({ quote, status, error, onConnect, onDisconnect }: Tic
             {quote.change.toFixed(2)} ({quote.changePercent >= 0 ? "+" : ""}
             {quote.changePercent.toFixed(2)}%)
           </span>
+          {connected && (
+            <button
+              type="button"
+              onClick={onDisconnect}
+              className="text-abtg-muted hover:text-abtg-loss text-sm px-1"
+              title="Disconnetti"
+              aria-label="Disconnetti"
+            >
+              ✕
+            </button>
+          )}
         </div>
       )}
 
-      {error && <span className="text-xs text-abtg-loss ml-auto">{error}</span>}
+      {error && !quote && <span className="text-xs text-abtg-loss ml-auto">{error}</span>}
 
       {status === "live" && (
-        <span className="text-[10px] text-abtg-muted">Dati con ~15min di ritardo</span>
+        <span className="text-[10px] text-abtg-muted">~15min delay</span>
       )}
     </div>
   );
