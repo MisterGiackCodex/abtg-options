@@ -49,7 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </nav>
           </div>
         </header>
-        <main className="max-w-7xl mx-auto px-6 py-8">{children}</main>
+        <main className="max-w-[1600px] mx-auto px-4 md:px-6 py-6">{children}</main>
         <footer className="border-t border-abtg-border mt-12 bg-white">
           <div className="max-w-7xl mx-auto px-6 py-5 text-xs text-abtg-muted">
             <strong className="text-abtg-text">Disclaimer:</strong> Questo strumento è solo a scopo didattico e non costituisce consulenza finanziaria.

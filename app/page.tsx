@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/Card";
 import { NumberField } from "@/components/ui/NumberField";
 import { PayoffChart } from "@/components/charts/PayoffChart";
 import { POPDistribution } from "@/components/charts/POPDistribution";
+import { TimeDecayChart } from "@/components/charts/TimeDecayChart";
 import { GreeksGrid } from "@/components/metrics/MetricsPanel";
 import { ScenarioTable } from "@/components/metrics/ScenarioTable";
 import { LegList } from "@/components/strategy/LegList";
@@ -162,11 +163,8 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* ── Main 12-col grid ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-        {/* ── LEFT SIDEBAR: 4 cols, sticky ── */}
-        <aside className="lg:col-span-4 space-y-4 lg:sticky lg:top-20">
+      {/* ── CONFIG ROW: 3 cards full-width, responsive ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
 
           {/* Market params — compact 2-col grid */}
           <Card title="Parametri di Mercato" padding="p-4">
@@ -258,10 +256,10 @@ export default function DashboardPage() {
             </div>
           </details>
 
-        </aside>
+      </div>
 
-        {/* ── CENTER / RIGHT: 8 cols ── */}
-        <main className="lg:col-span-8 space-y-5" id="main-content">
+      {/* ── MAIN STACK: everything full-width below ── */}
+      <main className="space-y-5" id="main-content">
 
           {/* Key metrics — 4 per row, 2 rows */}
           <Card padding="p-4">
@@ -324,6 +322,12 @@ export default function DashboardPage() {
                 hint={`${legs.filter(l => l.side === "long").length}L / ${legs.filter(l => l.side === "short").length}S`}
               />
             </div>
+            <p className="text-xs text-abtg-muted mt-3 leading-relaxed border-t border-abtg-border pt-3">
+              <strong className="text-abtg-text font-semibold">Debito/Credito</strong> = quanto paghi (debito) o incassi (credito) all&apos;apertura.
+              <strong className="text-abtg-text font-semibold"> POP</strong> = probabilità di profitto a scadenza (distribuzione lognormale risk-neutral).
+              <strong className="text-abtg-text font-semibold"> EV</strong> = valore atteso del P&L pesato sulla probabilità di ogni scenario.
+              <strong className="text-abtg-text font-semibold"> Risk/Reward</strong> = rapporto fra profitto massimo e perdita massima.
+            </p>
           </Card>
 
           {/* Payoff chart — prominent */}
@@ -342,28 +346,50 @@ export default function DashboardPage() {
                 Oggi (mark-to-market)
               </span>
             </div>
+            <p className="text-xs text-abtg-muted mt-3 leading-relaxed border-t border-abtg-border pt-3">
+              <strong className="text-abtg-text font-semibold">Come leggerlo:</strong> la linea arancione mostra il profitto/perdita della strategia al prezzo di scadenza. La linea tratteggiata è il valore attuale (mark-to-market) considerando la volatilità residua. Sopra lo zero sei in profitto, sotto sei in perdita.
+            </p>
+          </Card>
+
+          {/* Greche + POP — 2 col full width */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card title="Greche Aggregate" padding="p-4">
+              <GreeksGrid g={greeks} multiplier />
+              <p className="text-xs text-abtg-muted mt-3 leading-relaxed border-t border-abtg-border pt-3">
+                <strong className="text-abtg-text font-semibold">Delta</strong> = variazione attesa del P&L per ogni $1 di movimento del sottostante.
+                <strong className="text-abtg-text font-semibold"> Gamma</strong> = quanto cambia il Delta.
+                <strong className="text-abtg-text font-semibold"> Theta</strong> = perdita giornaliera dovuta al passare del tempo.
+                <strong className="text-abtg-text font-semibold"> Vega</strong> = variazione per ogni punto % di volatilità.
+                <strong className="text-abtg-text font-semibold"> Rho</strong> = sensibilità ai tassi.
+              </p>
+            </Card>
+            <Card title="Distribuzione Prezzo e POP" padding="p-4">
+              <POPDistribution legs={legs} ln={ln} minS={minS} maxS={maxS} />
+              <p className="text-xs text-abtg-muted mt-3 leading-relaxed border-t border-abtg-border pt-3 text-left">
+                <strong className="text-abtg-text font-semibold">Cosa vedi:</strong> la curva blu mostra dove il mercato pensa arriverà il prezzo (distribuzione lognormale risk-neutral). Le zone verdi sono i prezzi in cui la tua strategia chiude in profitto a scadenza. Più verde cade sotto la curva, più alta è la POP.
+              </p>
+            </Card>
+          </div>
+
+          {/* Time Decay */}
+          <Card title="Erosione Temporale (Time Decay)" padding="p-4">
+            <TimeDecayChart legs={legs} ctx={ctx} />
+            <p className="text-xs text-abtg-muted mt-3 leading-relaxed border-t border-abtg-border pt-3">
+              <strong className="text-abtg-text font-semibold">Come leggerlo:</strong> l&apos;asse X scorre dai giorni attuali fino a scadenza (zero a destra). La linea arancione è il valore della strategia al prezzo spot; le linee tratteggiate mostrano ±5% dallo spot.
+              <br />
+              <strong className="text-abtg-text font-semibold">Cosa significa:</strong> per chi compra opzioni il tempo è un costo — la curva scende verso scadenza (&quot;theta decay&quot;). Per chi vende opzioni il tempo è un ricavo — la curva sale. La pendenza accelera nelle ultime settimane: è qui che il Theta diventa più aggressivo.
+            </p>
+          </Card>
+
+          {/* Scenari full width */}
+          <Card title="Analisi degli Scenari" padding="p-4">
+            <ScenarioTable legs={legs} spot={S} />
+            <p className="text-xs text-abtg-muted mt-3 leading-relaxed border-t border-abtg-border pt-3">
+              <strong className="text-abtg-text font-semibold">A cosa serve:</strong> tabella di simulazione che mostra il P&L della strategia a combinazioni incrociate di prezzo futuro del sottostante e giorni rimanenti. Utile per capire se la strategia tiene in scenari di &quot;what-if&quot; prima di aprire la posizione.
+            </p>
           </Card>
 
         </main>
-      </div>
-
-      {/* ── Full-width analytics: Greche + POP + Scenari (2 rows, responsive) ── */}
-      <section className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card title="Greche Aggregate" padding="p-4">
-            <GreeksGrid g={greeks} multiplier />
-          </Card>
-          <Card title="Distribuzione e POP" padding="p-4">
-            <POPDistribution legs={legs} ln={ln} minS={minS} maxS={maxS} />
-            <p className="text-xs text-abtg-muted mt-2 text-center leading-relaxed">
-              Zone verdi = prezzi in profitto a scadenza.
-            </p>
-          </Card>
-        </div>
-        <Card title="Analisi degli Scenari" padding="p-4">
-          <ScenarioTable legs={legs} spot={S} />
-        </Card>
-      </section>
 
       {showSaveModal && (
         <SaveTradeModal
