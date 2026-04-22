@@ -124,6 +124,60 @@ function dedupe(arr: number[], tol: number): number[] {
   return out;
 }
 
+// Adaptive chart viewport: auto-fits X/Y to strategy (strikes, spot, IV, DTE, payoff magnitude).
+// Returns clamped minS/maxS and a Y-domain that excludes runaway tails for naked shorts.
+export function computePayoffRange(
+  legs: Leg[],
+  ctx: MarketCtx,
+  opts?: { kSigma?: number; yPad?: number; steps?: number }
+): { minS: number; maxS: number; yMin: number; yMax: number } {
+  const kSigma = opts?.kSigma ?? 2.5;
+  const yPad = opts?.yPad ?? 0.15;
+  const steps = opts?.steps ?? 120;
+
+  const strikes = legs.filter((l) => l.kind !== "stock").map((l) => l.strike);
+  const anchors = strikes.length ? [...strikes, ctx.S] : [ctx.S];
+  const kMin = Math.min(...anchors);
+  const kMax = Math.max(...anchors);
+  const mid = (kMin + kMax) / 2;
+  const spread = kMax - kMin;
+
+  const sigmaMove = ctx.sigma * Math.sqrt(Math.max(ctx.T, 1 / 365)) * ctx.S * kSigma;
+  const halfWidth = Math.max(sigmaMove, spread * 1.5, ctx.S * 0.15);
+
+  const minS = Math.max(0.01, mid - halfWidth);
+  const maxS = mid + halfWidth;
+
+  // Size Y on the "likely" zone: payoff within ±1 sigma around spot (TV-style zoom).
+  // Keeps small plateau profits (e.g. $86 short call) visible even when tail loss is huge.
+  const sigma1 = ctx.sigma * Math.sqrt(Math.max(ctx.T, 1 / 365)) * ctx.S;
+  const yLo = Math.max(minS, ctx.S - sigma1);
+  const yHi = Math.min(maxS, ctx.S + sigma1);
+  const dS = (maxS - minS) / steps;
+  let lo = Infinity, hi = -Infinity;
+  for (let i = 0; i <= steps; i++) {
+    const S = minS + i * dS;
+    if (S < yLo || S > yHi) continue;
+    const e = strategyPayoff(legs, S);
+    if (e < lo) lo = e;
+    if (e > hi) hi = e;
+    const t = strategyValueNow(legs, { ...ctx, S });
+    if (t < lo) lo = t;
+    if (t > hi) hi = t;
+  }
+  // Always include strike-region payoff peaks/troughs
+  for (const k of strikes) {
+    const e = strategyPayoff(legs, k);
+    if (e < lo) lo = e;
+    if (e > hi) hi = e;
+  }
+  if (!isFinite(lo) || !isFinite(hi)) { lo = -1; hi = 1; }
+  if (lo === hi) { lo -= 1; hi += 1; }
+
+  const padAmt = (hi - lo) * yPad;
+  return { minS, maxS, yMin: lo - padAmt, yMax: hi + padAmt };
+}
+
 // Max profit/loss on expiration across range. Infinity possible for naked short/long calls.
 export function maxProfitLoss(legs: Leg[], minS: number, maxS: number, steps = 500): { maxProfit: number; maxLoss: number; unboundedUp: boolean; unboundedDown: boolean; } {
   let maxProfit = -Infinity, maxLoss = Infinity;

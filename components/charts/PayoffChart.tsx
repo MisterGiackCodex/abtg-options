@@ -2,14 +2,22 @@
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid, Area, ComposedChart } from "recharts";
 import type { PayoffPoint } from "@/lib/pricing/strategies";
 
+function fmtMoney(v: number): string {
+  const a = Math.abs(v);
+  if (a < 1000) return `$${v.toFixed(0)}`;
+  if (a < 1_000_000) return `$${(v / 1000).toFixed(1)}k`;
+  return `$${(v / 1_000_000).toFixed(2)}M`;
+}
+
 export function PayoffChart({
-  data, breakEvens = [], strikes = [], spot, showToday = true,
+  data, breakEvens = [], strikes = [], spot, showToday = true, yDomain,
 }: {
   data: PayoffPoint[];
   breakEvens?: number[];
   strikes?: number[];
   spot?: number;
   showToday?: boolean;
+  yDomain?: [number, number];
 }) {
   const chartData = data.map((d) => ({
     S: d.S,
@@ -25,7 +33,7 @@ export function PayoffChart({
         <ComposedChart data={chartData} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#232836" />
           <XAxis dataKey="S" tickFormatter={(v) => `$${Number(v).toFixed(0)}`} stroke="#8a8fa3" fontSize={11} />
-          <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`} stroke="#8a8fa3" fontSize={11} />
+          <YAxis tickFormatter={fmtMoney} stroke="#8a8fa3" fontSize={11} domain={yDomain ?? ["auto", "auto"]} allowDataOverflow={!!yDomain} />
           <Tooltip
             contentStyle={{ background: "#141821", border: "1px solid #232836", borderRadius: 6 }}
             labelFormatter={(v) => `Prezzo: $${Number(v).toFixed(2)}`}

@@ -14,6 +14,7 @@ import { useTrades } from "@/hooks/useTrades";
 import {
   aggregateGreeks,
   breakEvenPoints,
+  computePayoffRange,
   maxProfitLoss,
   netDebit,
   samplePayoff,
@@ -95,8 +96,10 @@ export default function Page() {
 
   const legs: Leg[] = tab === "compare" ? presetLegs : (customLegs.length > 0 ? customLegs : presetLegs);
 
-  const minS = Math.max(1, S * 0.5);
-  const maxS = S * 1.5;
+  const { minS, maxS, yMin, yMax } = useMemo(
+    () => computePayoffRange(legs, ctx),
+    [legs, S, sigma, T, r]
+  );
   const payoffData = useMemo(() => samplePayoff(legs, ctx, minS, maxS, 120), [legs, S, sigma, T, r, minS, maxS]);
   const bes = useMemo(() => breakEvenPoints(legs, minS, maxS, 2000), [legs, minS, maxS]);
   const greeks = useMemo(() => aggregateGreeks(legs, ctx), [legs, S, sigma, T, r]);
@@ -196,7 +199,7 @@ export default function Page() {
           </Card>
 
           <Card title="Payoff Diagram (scadenza vs oggi)">
-            <PayoffChart data={payoffData} breakEvens={bes} strikes={strikes} spot={S} />
+            <PayoffChart data={payoffData} breakEvens={bes} strikes={strikes} spot={S} yDomain={[yMin, yMax]} />
             <div className="flex gap-4 text-xs text-abtg-muted mt-2 justify-center">
               <span><span className="inline-block w-3 h-0.5 bg-abtg-gold mr-1 align-middle" />Scadenza</span>
               <span><span className="inline-block w-3 h-0.5 bg-blue-400 mr-1 align-middle" style={{ borderStyle: "dashed" }} />Oggi (mark-to-market)</span>

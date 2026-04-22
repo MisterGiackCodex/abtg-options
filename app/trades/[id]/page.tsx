@@ -11,6 +11,7 @@ import { calculateTradePnL } from "@/lib/trades/pnl";
 import {
   aggregateGreeks,
   breakEvenPoints,
+  computePayoffRange,
   samplePayoff,
   type Leg,
   type MarketCtx,
@@ -52,10 +53,12 @@ export default function TradeDetailPage() {
   }));
 
   const S = ctx.S;
-  const minS = Math.max(1, S * 0.5);
-  const maxS = S * 1.5;
+  const { minS, maxS, yMin, yMax } = useMemo(
+    () => computePayoffRange(legs, ctx),
+    [legs, ctx.S, ctx.T, ctx.r, ctx.sigma]
+  );
 
-  const payoffData = useMemo(() => samplePayoff(legs, ctx, minS, maxS, 120), [legs, ctx.S, ctx.T, ctx.r, ctx.sigma]);
+  const payoffData = useMemo(() => samplePayoff(legs, ctx, minS, maxS, 120), [legs, ctx.S, ctx.T, ctx.r, ctx.sigma, minS, maxS]);
   const bes = useMemo(() => breakEvenPoints(legs, minS, maxS, 2000), [legs, minS, maxS]);
   const greeks = useMemo(() => aggregateGreeks(legs, ctx), [legs, ctx.S, ctx.T, ctx.r, ctx.sigma]);
   const strikes = Array.from(new Set(legs.filter((l) => l.kind !== "stock").map((l) => l.strike)));
@@ -110,7 +113,7 @@ export default function TradeDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Payoff Chart */}
         <Card title="Payoff Diagram">
-          <PayoffChart data={payoffData} breakEvens={bes} strikes={strikes} spot={S} />
+          <PayoffChart data={payoffData} breakEvens={bes} strikes={strikes} spot={S} yDomain={[yMin, yMax]} />
         </Card>
 
         {/* Greeks */}
