@@ -1,5 +1,8 @@
 "use client";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { toPng } from "html-to-image";
+import { StrategyReport, type ReportData } from "@/components/trades/StrategyReport";
+import { STRATEGY_GUIDE } from "@/lib/presets/guide";
 import { Card } from "@/components/ui/Card";
 import { NumberField } from "@/components/ui/NumberField";
 import { PayoffChart } from "@/components/charts/PayoffChart";
@@ -199,6 +202,62 @@ export default function DashboardPage() {
 
   const strikes = Array.from(new Set(legs.filter((l) => l.kind !== "stock").map((l) => l.strike)));
   const activePreset = PRESETS.find((p) => p.id === preset);
+  const activeGuide = STRATEGY_GUIDE[preset];
+
+  // ── Report export ─────────────────────────────────────────────────────────
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [reportTitle, setReportTitle] = useState("");
+  const [exporting, setExporting] = useState(false);
+
+  const reportData: ReportData = useMemo(() => ({
+    title: reportTitle.trim() || (activePreset?.label ?? "Strategia"),
+    ticker: tickerSymbol ?? undefined,
+    presetLabel: activePreset?.label ?? preset,
+    bias: activePreset?.bias === "bullish" ? "Rialzista" : activePreset?.bias === "bearish" ? "Ribassista" : "Neutrale",
+    description: activePreset?.description ?? "",
+    params: { S, sigma, days, r, qty },
+    metrics: {
+      netDebit: nd,
+      maxProfit: mp.maxProfit,
+      maxLoss: mp.maxLoss,
+      unboundedUp: mp.unboundedUp,
+      unboundedDown: mp.unboundedDown,
+      breakEvens: bes,
+      pop,
+      ev,
+      riskReward: mp.unboundedUp || mp.unboundedDown || mp.maxLoss === 0 ? "—" : `${Math.abs(mp.maxProfit / mp.maxLoss).toFixed(2)}x`,
+      legsCount: legs.length,
+    },
+    greeks,
+    payoffData,
+    strikes,
+    yDomain: [yMin, yMax],
+    generatedAt: new Date().toLocaleString("it-IT"),
+  }), [reportTitle, activePreset, preset, tickerSymbol, S, sigma, days, r, qty, nd, mp, bes, pop, ev, legs.length, greeks, payoffData, strikes, yMin, yMax]);
+
+  const exportReport = useCallback(async () => {
+    if (!reportRef.current) return;
+    setExporting(true);
+    try {
+      // small delay to ensure Recharts finished animating
+      await new Promise((r) => setTimeout(r, 120));
+      const dataUrl = await toPng(reportRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: "#FFFFFF",
+      });
+      const link = document.createElement("a");
+      const safe = (reportData.title || "report").replace(/[^a-z0-9]+/gi, "_").toLowerCase();
+      link.download = `abtg_${safe}_${Date.now()}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error(err);
+      alert("Errore durante la generazione del report");
+    } finally {
+      setExporting(false);
+    }
+  }, [reportData]);
 
   // ── Compare tab derived values ────────────────────────────────────────────
   const compareLegsAll = useMemo(
@@ -538,18 +597,36 @@ export default function DashboardPage() {
               </select>
 
               {activePreset && (
-                <div className="flex items-start gap-2 mb-3">
-                  <span className={[
-                    "inline-block shrink-0 px-2 py-0.5 rounded-full text-xs border font-semibold",
-                    activePreset.bias === "bullish"
-                      ? "bg-abtg-profit/10 text-abtg-profit border-abtg-profit/20"
-                      : activePreset.bias === "bearish"
-                      ? "bg-abtg-loss/10 text-abtg-loss border-abtg-loss/20"
-                      : "bg-abtg-gold/10 text-abtg-gold border-abtg-gold/20",
-                  ].join(" ")}>
-                    {activePreset.bias === "bullish" ? "Rialzista" : activePreset.bias === "bearish" ? "Ribassista" : "Neutrale"}
-                  </span>
-                  <p className="text-xs text-abtg-muted leading-relaxed">{activePreset.description}</p>
+                <div className="mb-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className={[
+                      "inline-block shrink-0 px-2 py-0.5 rounded-full text-xs border font-semibold",
+                      activePreset.bias === "bullish"
+                        ? "bg-abtg-profit/10 text-abtg-profit border-abtg-profit/20"
+                        : activePreset.bias === "bearish"
+                        ? "bg-abtg-loss/10 text-abtg-loss border-abtg-loss/20"
+                        : "bg-abtg-gold/10 text-abtg-gold border-abtg-gold/20",
+                    ].join(" ")}>
+                      {activePreset.bias === "bullish" ? "Rialzista" : activePreset.bias === "bearish" ? "Ribassista" : "Neutrale"}
+                    </span>
+                    <p className="text-xs text-abtg-muted leading-relaxed flex-1">{activePreset.description}</p>
+                  </div>
+                  {activeGuide && (
+                    <details className="group bg-abtg-bg rounded-lg p-2.5 border border-abtg-border">
+                      <summary className="cursor-pointer text-[11px] font-bold text-abtg-navy uppercase tracking-widest list-none flex items-center justify-between">
+                        <span>Guida alla Strategia</span>
+                        <svg className="w-3.5 h-3.5 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                      </summary>
+                      <div className="mt-2 space-y-1.5 text-xs text-abtg-text leading-relaxed">
+                        <p><strong className="text-abtg-navy">Quando si usa:</strong> {activeGuide.when}</p>
+                        <p><strong className="text-abtg-navy">Come funziona:</strong> {activeGuide.how}</p>
+                        <p><strong className="text-abtg-profit">Profitto:</strong> {activeGuide.profit}</p>
+                        <p><strong className="text-abtg-loss">Perdita:</strong> {activeGuide.loss}</p>
+                        <p><strong className="text-abtg-muted">Break-even:</strong> {activeGuide.breakeven}</p>
+                        {activeGuide.tip && <p className="mt-2 pt-2 border-t border-abtg-border text-abtg-muted italic"><strong>Nota operativa:</strong> {activeGuide.tip}</p>}
+                      </div>
+                    </details>
+                  )}
                 </div>
               )}
 
@@ -611,14 +688,31 @@ export default function DashboardPage() {
 
             {/* Key metrics */}
             <Card padding="p-4">
-              <div className="flex items-center justify-between mb-3 pb-3 border-b border-abtg-border">
+              <div className="flex items-center justify-between gap-3 mb-3 pb-3 border-b border-abtg-border flex-wrap">
                 <h3 className="text-xs uppercase tracking-widest text-abtg-navy font-bold">Metriche Chiave</h3>
-                <button
-                  className="abtg-btn-navy px-5 py-1.5 rounded-lg text-xs font-semibold"
-                  onClick={() => setShowSaveModal(true)}
-                >
-                  Salva Trade
-                </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <input
+                    type="text"
+                    value={reportTitle}
+                    onChange={(e) => setReportTitle(e.target.value)}
+                    placeholder="Titolo analisi (opzionale)"
+                    className="abtg-input text-xs py-1.5 w-48"
+                  />
+                  <button
+                    className="abtg-btn text-xs px-4 py-1.5"
+                    onClick={exportReport}
+                    disabled={exporting}
+                    title="Genera report PNG della strategia"
+                  >
+                    {exporting ? "Esporto..." : "↓ Scarica Report"}
+                  </button>
+                  <button
+                    className="abtg-btn-navy px-5 py-1.5 rounded-lg text-xs font-semibold"
+                    onClick={() => setShowSaveModal(true)}
+                  >
+                    Salva Trade
+                  </button>
+                </div>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <MetricCompact
@@ -749,6 +843,11 @@ export default function DashboardPage() {
           onClose={() => setShowSaveModal(false)}
         />
       )}
+
+      {/* Hidden report DOM rendered offscreen for PNG capture */}
+      <div style={{ position: "fixed", left: -99999, top: 0, pointerEvents: "none" }} aria-hidden="true">
+        <StrategyReport ref={reportRef} data={reportData} />
+      </div>
     </div>
   );
 }
