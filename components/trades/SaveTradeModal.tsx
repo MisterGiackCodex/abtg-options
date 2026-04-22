@@ -49,29 +49,52 @@ export function SaveTradeModal({ legs, ctx, onSave, onClose }: SaveTradeModalPro
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-abtg-surface border border-abtg-border rounded-lg p-6 w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-lg font-bold text-abtg-gold">Salva come Trade</h3>
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="bg-white border border-abtg-border rounded-2xl p-6 w-full max-w-md space-y-4 shadow-elevated"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-lg font-bold text-abtg-navy">Salva come Trade</h3>
 
         <div>
-          <label className="text-xs text-abtg-muted block mb-1">Nome operazione *</label>
-          <input className="abtg-input w-full" placeholder="es. AAPL Bull Call Spread" value={name} onChange={(e) => setName(e.target.value)} />
+          <label className="abtg-label">Nome operazione *</label>
+          <input
+            className="abtg-input w-full"
+            placeholder="es. AAPL Bull Call Spread"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-abtg-muted block mb-1">Ticker *</label>
-            <input className="abtg-input w-full" placeholder="es. AAPL" value={ticker} onChange={(e) => setTicker(e.target.value.toUpperCase())} />
+            <label className="abtg-label">Ticker *</label>
+            <input
+              className="abtg-input w-full"
+              placeholder="es. AAPL"
+              value={ticker}
+              onChange={(e) => setTicker(e.target.value.toUpperCase())}
+            />
           </div>
           <div>
-            <label className="text-xs text-abtg-muted block mb-1">Scadenza</label>
-            <input type="date" className="abtg-input w-full" value={expirationDate || defaultExpiry} onChange={(e) => setExpirationDate(e.target.value)} />
+            <label className="abtg-label">Scadenza</label>
+            <input
+              type="date"
+              className="abtg-input w-full"
+              value={expirationDate || defaultExpiry}
+              onChange={(e) => setExpirationDate(e.target.value)}
+            />
           </div>
         </div>
 
         <div>
-          <label className="text-xs text-abtg-muted block mb-1">Note</label>
-          <textarea className="abtg-input w-full h-20 resize-none" placeholder="Note sulla strategia..." value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <label className="abtg-label">Note</label>
+          <textarea
+            className="abtg-input w-full h-20 resize-none"
+            placeholder="Note sulla strategia..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
         </div>
 
         <div className="text-xs text-abtg-muted">
@@ -79,8 +102,14 @@ export function SaveTradeModal({ legs, ctx, onSave, onClose }: SaveTradeModalPro
         </div>
 
         <div className="flex gap-3 justify-end">
-          <button className="abtg-btn text-xs bg-abtg-border text-abtg-muted" onClick={onClose}>Annulla</button>
-          <button className="abtg-btn text-xs" onClick={handleSave} disabled={!name.trim() || !ticker.trim()}>Salva Trade</button>
+          <button className="abtg-btn text-xs" onClick={onClose}>Annulla</button>
+          <button
+            className="abtg-btn-navy text-xs px-4 py-2 rounded-lg disabled:opacity-50"
+            onClick={handleSave}
+            disabled={!name.trim() || !ticker.trim()}
+          >
+            Salva Trade
+          </button>
         </div>
       </div>
     </div>

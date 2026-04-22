@@ -24,11 +24,15 @@ export function TradeList({ trades, defaultCtx, onSelect, onDelete, onClose }: T
 
   return (
     <div>
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-5">
         {(["all", "open", "closed", "expired"] as const).map((f) => (
           <button
             key={f}
-            className={`px-3 py-1 rounded text-xs transition ${filter === f ? "bg-abtg-gold text-abtg-bg font-bold" : "bg-abtg-border text-abtg-muted hover:text-abtg-text"}`}
+            className={`px-3 py-1.5 rounded-lg text-xs transition font-medium border ${
+              filter === f
+                ? "bg-abtg-navy text-white border-abtg-navy"
+                : "bg-abtg-bg border-abtg-border text-abtg-muted hover:text-abtg-navy hover:border-abtg-navy"
+            }`}
             onClick={() => setFilter(f)}
           >
             {f === "all" ? "Tutti" : f === "open" ? "Aperti" : f === "closed" ? "Chiusi" : "Scaduti"}
@@ -37,23 +41,28 @@ export function TradeList({ trades, defaultCtx, onSelect, onDelete, onClose }: T
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-center text-abtg-muted py-12">
-          Nessun trade {filter !== "all" ? `con stato "${filter}"` : "salvato"}. Vai alla Dashboard per crearne uno.
+        <div className="text-center text-abtg-muted py-16">
+          <p className="text-lg font-medium mb-2">Nessun trade trovato</p>
+          <p className="text-sm">
+            {filter !== "all"
+              ? `Nessun trade con stato "${filter}".`
+              : "Vai alla Dashboard per creare la tua prima operazione."}
+          </p>
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-abtg-muted text-xs border-b border-abtg-border">
-                <th className="py-2 text-left">Nome</th>
-                <th className="py-2 text-left">Ticker</th>
-                <th className="py-2 text-left">Data</th>
-                <th className="py-2 text-center">Status</th>
-                <th className="py-2 text-right">Legs</th>
-                <th className="py-2 text-right">Net Debit</th>
-                <th className="py-2 text-right">P&L ($)</th>
-                <th className="py-2 text-right">P&L (%)</th>
-                <th className="py-2 text-right">Azioni</th>
+                <th className="py-3 text-left font-semibold">Nome</th>
+                <th className="py-3 text-left font-semibold">Ticker</th>
+                <th className="py-3 text-left font-semibold">Data</th>
+                <th className="py-3 text-center font-semibold">Status</th>
+                <th className="py-3 text-right font-semibold">Leg</th>
+                <th className="py-3 text-right font-semibold">Net Debit</th>
+                <th className="py-3 text-right font-semibold">P&amp;L ($)</th>
+                <th className="py-3 text-right font-semibold">P&amp;L (%)</th>
+                <th className="py-3 text-right font-semibold">Azioni</th>
               </tr>
             </thead>
             <tbody>
@@ -69,35 +78,47 @@ export function TradeList({ trades, defaultCtx, onSelect, onDelete, onClose }: T
                 const pnlColor = pnl.totalPnL >= 0 ? "text-abtg-profit" : "text-abtg-loss";
 
                 return (
-                  <tr key={trade.id} className="border-b border-abtg-border/50 hover:bg-abtg-border/20 cursor-pointer" onClick={() => onSelect(trade.id)}>
-                    <td className="py-3 font-medium text-abtg-text">{trade.name}</td>
-                    <td className="py-3 text-abtg-gold font-mono">{trade.ticker}</td>
-                    <td className="py-3 text-abtg-muted">{trade.entryDate}</td>
-                    <td className="py-3 text-center">
-                      <span className={`px-2 py-0.5 rounded text-xs ${
-                        trade.status === "open" ? "bg-blue-500/20 text-blue-400" :
-                        trade.status === "closed" ? "bg-abtg-muted/20 text-abtg-muted" :
-                        "bg-yellow-500/20 text-yellow-400"
+                  <tr
+                    key={trade.id}
+                    className="border-b border-abtg-border hover:bg-abtg-bg/60 cursor-pointer transition-colors"
+                    onClick={() => onSelect(trade.id)}
+                  >
+                    <td className="py-3.5 font-semibold text-abtg-text">{trade.name}</td>
+                    <td className="py-3.5 text-abtg-navy font-mono font-semibold">{trade.ticker}</td>
+                    <td className="py-3.5 text-abtg-muted">{trade.entryDate}</td>
+                    <td className="py-3.5 text-center">
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                        trade.status === "open"
+                          ? "bg-abtg-navy/10 text-abtg-navy border-abtg-navy/20"
+                          : trade.status === "closed"
+                          ? "bg-abtg-muted/10 text-abtg-muted border-abtg-muted/20"
+                          : "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
                       }`}>
-                        {trade.status}
+                        {trade.status === "open" ? "Aperto" : trade.status === "closed" ? "Chiuso" : "Scaduto"}
                       </span>
                     </td>
-                    <td className="py-3 text-right font-mono">{trade.legs.length}</td>
-                    <td className="py-3 text-right font-mono">${Math.abs(pnl.totalEntryDebit).toFixed(2)}</td>
-                    <td className={`py-3 text-right font-mono font-bold ${pnlColor}`}>
+                    <td className="py-3.5 text-right font-mono">{trade.legs.length}</td>
+                    <td className="py-3.5 text-right font-mono">${Math.abs(pnl.totalEntryDebit).toFixed(2)}</td>
+                    <td className={`py-3.5 text-right font-mono font-bold ${pnlColor}`}>
                       {pnl.totalPnL >= 0 ? "+" : ""}${pnl.totalPnL.toFixed(2)}
                     </td>
-                    <td className={`py-3 text-right font-mono ${pnlColor}`}>
+                    <td className={`py-3.5 text-right font-mono font-medium ${pnlColor}`}>
                       {pnl.totalPnLPct >= 0 ? "+" : ""}{pnl.totalPnLPct.toFixed(1)}%
                     </td>
-                    <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex gap-1 justify-end">
+                    <td className="py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex gap-1.5 justify-end">
                         {trade.status === "open" && (
-                          <button className="px-2 py-1 rounded text-xs bg-abtg-gold/20 text-abtg-gold hover:bg-abtg-gold/30" onClick={() => onClose(trade.id)}>
+                          <button
+                            className="px-2.5 py-1 rounded-md text-xs bg-abtg-navy/10 text-abtg-navy hover:bg-abtg-navy/20 border border-abtg-navy/20 font-medium transition"
+                            onClick={() => onClose(trade.id)}
+                          >
                             Chiudi
                           </button>
                         )}
-                        <button className="px-2 py-1 rounded text-xs bg-abtg-loss/20 text-abtg-loss hover:bg-abtg-loss/30" onClick={() => onDelete(trade.id)}>
+                        <button
+                          className="px-2.5 py-1 rounded-md text-xs bg-abtg-loss/10 text-abtg-loss hover:bg-abtg-loss/20 border border-abtg-loss/20 font-medium transition"
+                          onClick={() => onDelete(trade.id)}
+                        >
                           Elimina
                         </button>
                       </div>

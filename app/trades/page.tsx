@@ -12,7 +12,7 @@ export default function TradesPage() {
   const defaultCtx = { S: 100, T: 30 / 365, r: 0.045, sigma: 0.3 };
 
   const handleClose = (id: string) => {
-    if (!confirm("Sei sicuro di voler chiudere questo trade? I prezzi di chiusura verranno registrati ai valori correnti.")) return;
+    if (!confirm("Confermi la chiusura di questo trade? I prezzi verranno registrati ai valori correnti di mercato.")) return;
     const trade = trades.find((t) => t.id === id);
     if (!trade) return;
     const closePrices: Record<string, number> = {};
@@ -23,7 +23,7 @@ export default function TradesPage() {
   };
 
   const handleDelete = (id: string) => {
-    if (!confirm("Sei sicuro di voler eliminare questo trade?")) return;
+    if (!confirm("Sei sicuro di voler eliminare definitivamente questo trade?")) return;
     deleteTrade(id);
   };
 
@@ -31,18 +31,18 @@ export default function TradesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-abtg-gold">Trade Manager</h1>
+          <h1 className="text-2xl font-bold text-abtg-navy">Trade Manager</h1>
           <p className="text-sm text-abtg-muted mt-1">
-            {trades.length} trade totali | {trades.filter((t) => t.status === "open").length} aperti
+            {trades.length} trade totali · {trades.filter((t) => t.status === "open").length} aperti
           </p>
         </div>
         <div className="flex gap-2 items-center">
-          <a href="/" className="abtg-btn text-xs">+ Nuovo Trade</a>
+          <a href="/dashboard" className="abtg-btn-navy text-xs px-4 py-2 rounded-lg">+ Nuovo Trade</a>
           <TradeActions onImportJSON={importJSON} onExportJSON={exportJSON} onExportCSV={exportCSV} />
         </div>
       </div>
 
-      <Card title="Operazioni">
+      <Card title="Le Tue Operazioni">
         <TradeList
           trades={trades}
           defaultCtx={defaultCtx}

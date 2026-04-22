@@ -27,8 +27,8 @@ export default function TradeDetailPage() {
   if (!trade) {
     return (
       <div className="text-center py-20">
-        <p className="text-abtg-muted">Trade non trovato.</p>
-        <a href="/trades" className="abtg-btn text-xs mt-4 inline-block">Torna ai Trade</a>
+        <p className="text-abtg-muted text-lg mb-4">Trade non trovato.</p>
+        <a href="/trades" className="abtg-btn text-xs inline-block">Torna ai Trade</a>
       </div>
     );
   }
@@ -64,7 +64,7 @@ export default function TradeDetailPage() {
   const strikes = Array.from(new Set(legs.filter((l) => l.kind !== "stock").map((l) => l.strike)));
 
   const handleClose = () => {
-    if (!confirm("Chiudere il trade ai prezzi correnti?")) return;
+    if (!confirm("Confermi la chiusura del trade ai prezzi correnti di mercato?")) return;
     const closePrices: Record<string, number> = {};
     for (const leg of trade.legs) closePrices[leg.id] = leg.currentPremium;
     closeTrade(trade.id, closePrices);
@@ -75,24 +75,34 @@ export default function TradeDetailPage() {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <button onClick={() => router.push("/trades")} className="text-xs text-abtg-muted hover:text-abtg-gold mb-2 block">
+          <button
+            onClick={() => router.push("/trades")}
+            className="text-xs text-abtg-muted hover:text-abtg-navy mb-2 block transition font-medium"
+          >
             &larr; Torna ai Trade
           </button>
-          <h1 className="text-2xl font-bold text-abtg-gold">{trade.name}</h1>
-          <div className="flex items-center gap-3 mt-1">
-            <span className="text-sm text-abtg-muted font-mono">{trade.ticker}</span>
-            <span className={`px-2 py-0.5 rounded text-xs ${
-              trade.status === "open" ? "bg-blue-500/20 text-blue-400" :
-              trade.status === "closed" ? "bg-abtg-muted/20 text-abtg-muted" :
-              "bg-yellow-500/20 text-yellow-400"
-            }`}>{trade.status}</span>
+          <h1 className="text-2xl font-bold text-abtg-navy">{trade.name}</h1>
+          <div className="flex items-center gap-3 mt-2 flex-wrap">
+            <span className="text-sm text-abtg-navy font-mono font-semibold">{trade.ticker}</span>
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+              trade.status === "open"
+                ? "bg-abtg-navy/10 text-abtg-navy border-abtg-navy/20"
+                : trade.status === "closed"
+                ? "bg-abtg-muted/10 text-abtg-muted border-abtg-muted/20"
+                : "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+            }`}>
+              {trade.status === "open" ? "Aperto" : trade.status === "closed" ? "Chiuso" : "Scaduto"}
+            </span>
             <span className="text-xs text-abtg-muted">Ingresso: {trade.entryDate}</span>
             <span className="text-xs text-abtg-muted">Scadenza: {trade.expirationDate}</span>
           </div>
         </div>
         <div className="flex gap-2">
           {trade.status === "open" && (
-            <button className="abtg-btn text-xs bg-abtg-gold/20 text-abtg-gold" onClick={handleClose}>
+            <button
+              className="abtg-btn-navy text-xs px-4 py-2 rounded-lg"
+              onClick={handleClose}
+            >
               Chiudi Trade
             </button>
           )}
@@ -112,7 +122,7 @@ export default function TradeDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Payoff Chart */}
-        <Card title="Payoff Diagram">
+        <Card title="Diagramma Payoff">
           <PayoffChart data={payoffData} breakEvens={bes} strikes={strikes} spot={S} yDomain={[yMin, yMax]} />
         </Card>
 
@@ -133,19 +143,19 @@ export default function TradeDetailPage() {
       </Card>
 
       {/* Market Context at Entry */}
-      <Card title="Contesto di mercato all'ingresso">
+      <Card title="Contesto di Mercato all'Ingresso">
         <div className="grid grid-cols-3 gap-4 text-sm">
           <div>
-            <span className="text-abtg-muted">Spot:</span>{" "}
-            <span className="font-mono">${trade.marketCtxAtEntry.S.toFixed(2)}</span>
+            <span className="text-abtg-muted font-medium">Spot:</span>{" "}
+            <span className="font-mono font-semibold">${trade.marketCtxAtEntry.S.toFixed(2)}</span>
           </div>
           <div>
-            <span className="text-abtg-muted">IV:</span>{" "}
-            <span className="font-mono">{(trade.marketCtxAtEntry.sigma * 100).toFixed(1)}%</span>
+            <span className="text-abtg-muted font-medium">IV:</span>{" "}
+            <span className="font-mono font-semibold">{(trade.marketCtxAtEntry.sigma * 100).toFixed(1)}%</span>
           </div>
           <div>
-            <span className="text-abtg-muted">Risk-free:</span>{" "}
-            <span className="font-mono">{(trade.marketCtxAtEntry.r * 100).toFixed(2)}%</span>
+            <span className="text-abtg-muted font-medium">Risk-free:</span>{" "}
+            <span className="font-mono font-semibold">{(trade.marketCtxAtEntry.r * 100).toFixed(2)}%</span>
           </div>
         </div>
       </Card>

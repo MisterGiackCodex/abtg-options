@@ -10,28 +10,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="it">
       <body>
-        <header className="border-b border-abtg-border bg-abtg-surface">
+        <header className="border-b border-abtg-border bg-white shadow-sm">
           <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded bg-abtg-gold text-abtg-bg font-black grid place-items-center">A</div>
+            <a href="/" className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-abtg-navy text-white font-black grid place-items-center text-sm">A</div>
               <div>
-                <div className="text-abtg-gold font-bold tracking-wide">ABTG Options Visualizer</div>
-                <div className="text-xs text-abtg-muted">Opzioni Americane — Strumento didattico</div>
+                <div className="text-abtg-navy font-bold tracking-wide text-base">ABTG Options</div>
+                <div className="text-xs text-abtg-muted">Opzioni Americane — Strumento Professionale</div>
               </div>
-            </div>
-            <nav className="flex gap-4 text-sm">
-              <a href="/" className="text-abtg-text hover:text-abtg-gold transition">Dashboard</a>
-              <a href="/trades" className="text-abtg-text hover:text-abtg-gold transition">Trades</a>
-              <a href="/learn" className="text-abtg-text hover:text-abtg-gold transition">Impara</a>
+            </a>
+            <nav className="flex gap-6 text-sm">
+              <a href="/dashboard" className="text-abtg-muted hover:text-abtg-navy transition font-medium">Dashboard</a>
+              <a href="/trades" className="text-abtg-muted hover:text-abtg-navy transition font-medium">Trade Manager</a>
+              <a href="/learn" className="text-abtg-muted hover:text-abtg-navy transition font-medium">Impara</a>
             </nav>
           </div>
         </header>
-        <main className="max-w-7xl mx-auto px-6 py-6">{children}</main>
-        <footer className="border-t border-abtg-border mt-10 bg-abtg-surface">
-          <div className="max-w-7xl mx-auto px-6 py-4 text-xs text-abtg-muted">
-            <strong className="text-abtg-text">Disclaimer:</strong> Questo strumento e solo a scopo didattico e non costituisce consulenza finanziaria.
-            I calcoli usano il modello Black-Scholes e assunzioni lognormali risk-neutral; i risultati reali possono differire.
-            © Alfio Bardolla Training Group — fork didattico.
+        <main className="max-w-7xl mx-auto px-6 py-8">{children}</main>
+        <footer className="border-t border-abtg-border mt-12 bg-white">
+          <div className="max-w-7xl mx-auto px-6 py-5 text-xs text-abtg-muted">
+            <strong className="text-abtg-text">Disclaimer:</strong> Questo strumento è solo a scopo didattico e non costituisce consulenza finanziaria.
+            I calcoli utilizzano il modello Black-Scholes e assunzioni lognormali risk-neutral; i risultati reali possono differire.
+            © Alfio Bardolla Training Group — strumento didattico.
           </div>
         </footer>
       </body>

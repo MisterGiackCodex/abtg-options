@@ -21,11 +21,12 @@ export function POPDistribution({ legs, ln, minS, maxS }: { legs: Leg[]; ln: LNP
     <div className="h-[300px] w-full">
       <ResponsiveContainer>
         <ComposedChart data={points} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#232836" />
-          <XAxis dataKey="S" tickFormatter={(v) => `$${Number(v).toFixed(0)}`} stroke="#8a8fa3" fontSize={11} />
-          <YAxis tickFormatter={() => ""} stroke="#8a8fa3" fontSize={11} width={20} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+          <XAxis dataKey="S" tickFormatter={(v) => `$${Number(v).toFixed(0)}`} stroke="#64748B" fontSize={11} />
+          <YAxis tickFormatter={() => ""} stroke="#64748B" fontSize={11} width={20} />
           <Tooltip
-            contentStyle={{ background: "#141821", border: "1px solid #232836", borderRadius: 6 }}
+            contentStyle={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+            labelStyle={{ color: "#1A202C", fontWeight: 600 }}
             labelFormatter={(v) => `Prezzo: $${Number(v).toFixed(2)}`}
             formatter={(v: number, name: string) => {
               if (name === "pdf") return [(v * 100).toFixed(3), "Densita"];
@@ -33,9 +34,9 @@ export function POPDistribution({ legs, ln, minS, maxS }: { legs: Leg[]; ln: LNP
               return [v, name];
             }}
           />
-          <ReferenceLine x={ln.S} stroke="#d4af37" strokeDasharray="4 4" />
-          <Area type="monotone" dataKey="profitZone" stroke="none" fill="#22c55e" fillOpacity={0.35} />
-          <Area type="monotone" dataKey="pdf" stroke="#60a5fa" fill="#60a5fa" fillOpacity={0.1} strokeWidth={1.5} isAnimationActive={false} />
+          <ReferenceLine x={ln.S} stroke="#C9A84C" strokeDasharray="4 4" />
+          <Area type="monotone" dataKey="profitZone" stroke="none" fill="#16A34A" fillOpacity={0.30} />
+          <Area type="monotone" dataKey="pdf" stroke="#1B2B5E" fill="#1B2B5E" fillOpacity={0.08} strokeWidth={1.5} isAnimationActive={false} />
         </ComposedChart>
       </ResponsiveContainer>
     </div>

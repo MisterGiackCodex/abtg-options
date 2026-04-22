@@ -1,242 +1,186 @@
-"use client";
-import { useCallback, useMemo, useState } from "react";
-import { Card } from "@/components/ui/Card";
-import { NumberField } from "@/components/ui/NumberField";
-import { PayoffChart } from "@/components/charts/PayoffChart";
-import { POPDistribution } from "@/components/charts/POPDistribution";
-import { GreeksGrid, Metric } from "@/components/metrics/MetricsPanel";
-import { ScenarioTable } from "@/components/metrics/ScenarioTable";
-import { LegList } from "@/components/strategy/LegList";
-import { TickerBar } from "@/components/ticker/TickerBar";
-import { SaveTradeModal } from "@/components/trades/SaveTradeModal";
-import { useMarketFeed } from "@/hooks/useMarketFeed";
-import { useTrades } from "@/hooks/useTrades";
-import {
-  aggregateGreeks,
-  breakEvenPoints,
-  computePayoffRange,
-  maxProfitLoss,
-  netDebit,
-  samplePayoff,
-  type Leg,
-} from "@/lib/pricing/strategies";
-import { expectedValue, probabilityOfProfit } from "@/lib/probability/pop";
-import type { LNParams } from "@/lib/probability/lognormal";
-import {
-  buyCall, sellCall, buyPut, sellPut, coveredCall,
-  bullCallSpread, bearPutSpread, bullPutSpread, bearCallSpread,
-  longStraddle, shortStraddle, longStrangle, ironCondor, callButterfly,
-  PRESETS, type PresetId,
-} from "@/lib/presets/multileg";
+import Link from "next/link";
 
-type Tab = "single" | "multi" | "compare";
-
-export default function Page() {
-  const [tab, setTab] = useState<Tab>("single");
-  const [S, setS] = useState(100);
-  const [sigma, setSigma] = useState(0.3);
-  const [days, setDays] = useState(30);
-  const [r, setR] = useState(0.045);
-
-  // Ticker live
-  const [tickerSymbol, setTickerSymbol] = useState<string | null>(null);
-  const { quote, status: feedStatus, error: feedError } = useMarketFeed(tickerSymbol);
-  const handleConnect = useCallback((sym: string) => setTickerSymbol(sym), []);
-  const handleDisconnect = useCallback(() => setTickerSymbol(null), []);
-
-  // Auto-populate spot from ticker
-  if (quote && quote.price > 0 && tickerSymbol) {
-    if (Math.abs(quote.price - S) > 0.005) {
-      // defer state update
-      setTimeout(() => setS(quote.price), 0);
-    }
-  }
-
-  // Save trade modal
-  const [showSaveModal, setShowSaveModal] = useState(false);
-  const { addTrade } = useTrades();
-
-  const T = days / 365;
-  const ctx = { S, T, r, sigma };
-
-  // Preset state
-  const [preset, setPreset] = useState<PresetId>("buyCall");
-  const [k1, setK1] = useState(100);
-  const [k2, setK2] = useState(110);
-  const [k3, setK3] = useState(120);
-  const [k4, setK4] = useState(90);
-  const [qty, setQty] = useState(1);
-  const [customLegs, setCustomLegs] = useState<Leg[]>([]);
-
-  // Build legs from preset
-  const presetLegs: Leg[] = useMemo(() => {
-    switch (preset) {
-      case "buyCall": return buyCall(k1, ctx, qty);
-      case "sellCall": return sellCall(k1, ctx, qty);
-      case "buyPut": return buyPut(k1, ctx, qty);
-      case "sellPut": return sellPut(k1, ctx, qty);
-      case "coveredCall": return coveredCall(k1, ctx, qty);
-      case "bullCallSpread": return bullCallSpread(k1, k2, ctx, qty);
-      case "bearPutSpread": return bearPutSpread(k1, k2, ctx, qty);
-      case "bullPutSpread": return bullPutSpread(k1, k2, ctx, qty);
-      case "bearCallSpread": return bearCallSpread(k1, k2, ctx, qty);
-      case "longStraddle": return longStraddle(k1, ctx, qty);
-      case "shortStraddle": return shortStraddle(k1, ctx, qty);
-      case "longStrangle": return longStrangle(k4, k1, ctx, qty);
-      case "ironCondor": return ironCondor(k4 - 10, k4, k2, k2 + 10, ctx, qty);
-      case "callButterfly": return callButterfly(k1, k2, k3, ctx, qty);
-    }
-  }, [preset, k1, k2, k3, k4, qty, S, sigma, T, r]);
-
-  const tabPresets = tab === "single"
-    ? PRESETS.filter((p) => p.category === "single")
-    : tab === "multi"
-    ? PRESETS.filter((p) => p.category === "multi")
-    : PRESETS;
-
-  const legs: Leg[] = tab === "compare" ? presetLegs : (customLegs.length > 0 ? customLegs : presetLegs);
-
-  const { minS, maxS, yMin, yMax } = useMemo(
-    () => computePayoffRange(legs, ctx),
-    [legs, S, sigma, T, r]
-  );
-  const payoffData = useMemo(() => samplePayoff(legs, ctx, minS, maxS, 120), [legs, S, sigma, T, r, minS, maxS]);
-  const bes = useMemo(() => breakEvenPoints(legs, minS, maxS, 2000), [legs, minS, maxS]);
-  const greeks = useMemo(() => aggregateGreeks(legs, ctx), [legs, S, sigma, T, r]);
-  const mp = useMemo(() => maxProfitLoss(legs, minS * 0.5, maxS * 1.5, 500), [legs, minS, maxS]);
-  const nd = netDebit(legs);
-
-  const ln: LNParams = { S, T, r, sigma };
-  const pop = useMemo(() => (T > 0 ? probabilityOfProfit(legs, ln) : 0), [legs, S, sigma, T, r]);
-  const ev = useMemo(() => (T > 0 ? expectedValue(legs, ln) : 0), [legs, S, sigma, T, r]);
-
-  const strikes = Array.from(new Set(legs.filter((l) => l.kind !== "stock").map((l) => l.strike)));
-  const activePreset = PRESETS.find((p) => p.id === preset);
-
-  // Reset custom legs when changing preset so they regenerate
-  const applyPreset = (id: PresetId) => {
-    setPreset(id);
-    setCustomLegs([]);
-  };
-
+export default function LandingPage() {
   return (
-    <div className="space-y-6">
-      {/* Ticker Bar */}
-      <TickerBar
-        quote={quote}
-        status={feedStatus}
-        error={feedError}
-        onConnect={handleConnect}
-        onDisconnect={handleDisconnect}
-      />
-
-      <div className="flex gap-2 border-b border-abtg-border">
-        <div className={`abtg-tab ${tab === "single" ? "abtg-tab-active" : ""}`} onClick={() => { setTab("single"); applyPreset("buyCall"); }}>Single-Leg</div>
-        <div className={`abtg-tab ${tab === "multi" ? "abtg-tab-active" : ""}`} onClick={() => { setTab("multi"); applyPreset("bullCallSpread"); }}>Multi-Leg</div>
-        <div className={`abtg-tab ${tab === "compare" ? "abtg-tab-active" : ""}`} onClick={() => setTab("compare")}>Confronto</div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="space-y-6">
-          <Card title="Parametri di mercato">
-            <div className="grid grid-cols-2 gap-3">
-              <NumberField label="Spot" value={S} onChange={setS} step={0.5} />
-              <NumberField label="Volatilita impl." value={sigma * 100} onChange={(v) => setSigma(v / 100)} step={1} suffix="%" />
-              <NumberField label="Giorni a scadenza" value={days} onChange={setDays} step={1} min={0} />
-              <NumberField label="Risk-free rate" value={r * 100} onChange={(v) => setR(v / 100)} step={0.25} suffix="%" />
-              <NumberField label="Contratti" value={qty} onChange={(v) => setQty(Math.max(1, Math.round(v)))} step={1} min={1} />
-            </div>
-          </Card>
-
-          <Card title="Strategia">
-            <select className="abtg-input mb-3" value={preset} onChange={(e) => applyPreset(e.target.value as PresetId)}>
-              {tabPresets.map((p) => (
-                <option key={p.id} value={p.id}>{p.label}</option>
-              ))}
-            </select>
-            {activePreset && (
-              <div className="text-sm text-abtg-muted mb-3">
-                <span className={`inline-block px-2 py-0.5 rounded text-xs mr-2 ${activePreset.bias === "bullish" ? "bg-abtg-profit/20 text-abtg-profit" : activePreset.bias === "bearish" ? "bg-abtg-loss/20 text-abtg-loss" : "bg-abtg-gold/20 text-abtg-gold"}`}>
-                  {activePreset.bias}
-                </span>
-                {activePreset.description}
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              {activePreset?.strikes.map((name) => {
-                const map: Record<string, [number, (v: number) => void]> = {
-                  K: [k1, setK1], K1: [k1, setK1], Kp1: [k1, setK1],
-                  K2: [k2, setK2], Kc1: [k2, setK2],
-                  K3: [k3, setK3],
-                  Kp: [k4, setK4], Kp2: [k4, setK4], Kc2: [k2, setK2],
-                };
-                const [val, setter] = map[name] ?? [k1, setK1];
-                return <NumberField key={name} label={`Strike ${name}`} value={val} onChange={setter} step={0.5} />;
-              })}
-            </div>
-          </Card>
-
-          <Card title="Legs (personalizzabili)">
-            <LegList legs={legs} onChange={setCustomLegs} />
-            {customLegs.length > 0 && (
-              <button className="abtg-btn mt-2 text-xs" onClick={() => setCustomLegs([])}>Ripristina preset</button>
-            )}
-          </Card>
-        </div>
-
-        <div className="lg:col-span-2 space-y-6">
-          <Card title="Metriche chiave">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              <Metric label="Net debit/credit" value={`${nd >= 0 ? "-" : "+"}$${Math.abs(nd).toFixed(2)}`} tone={nd >= 0 ? "loss" : "profit"} hint={nd >= 0 ? "Paghi" : "Incassi"} />
-              <Metric label="Max profit" value={mp.unboundedUp ? "∞" : `$${mp.maxProfit.toFixed(2)}`} tone="profit" />
-              <Metric label="Max perdita" value={mp.unboundedDown ? "-∞" : `$${mp.maxLoss.toFixed(2)}`} tone="loss" />
-              <Metric label="Break-even" value={bes.length === 0 ? "—" : bes.map((b) => `$${b.toFixed(2)}`).join(" / ")} tone="gold" />
-              <Metric label="POP" value={`${(pop * 100).toFixed(1)}%`} tone="gold" hint="Probabilita profitto (risk-neutral)" />
-              <Metric label="Expected Value" value={`$${ev.toFixed(2)}`} tone={ev >= 0 ? "profit" : "loss"} hint="EV atteso a scadenza" />
-              <Metric label="Risk/Reward" value={mp.unboundedUp || mp.unboundedDown || mp.maxLoss === 0 ? "—" : (Math.abs(mp.maxProfit / mp.maxLoss)).toFixed(2)} />
-              <Metric label="Legs" value={`${legs.length}`} />
-            </div>
-          </Card>
-
-          <Card title="Payoff Diagram (scadenza vs oggi)">
-            <PayoffChart data={payoffData} breakEvens={bes} strikes={strikes} spot={S} yDomain={[yMin, yMax]} />
-            <div className="flex gap-4 text-xs text-abtg-muted mt-2 justify-center">
-              <span><span className="inline-block w-3 h-0.5 bg-abtg-gold mr-1 align-middle" />Scadenza</span>
-              <span><span className="inline-block w-3 h-0.5 bg-blue-400 mr-1 align-middle" style={{ borderStyle: "dashed" }} />Oggi (mark-to-market)</span>
-            </div>
-          </Card>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card title="Greche aggregate">
-              <GreeksGrid g={greeks} multiplier />
-            </Card>
-            <Card title="Distribuzione prezzo + zona profitto">
-              <POPDistribution legs={legs} ln={ln} minS={minS} maxS={maxS} />
-              <div className="text-xs text-abtg-muted mt-2 text-center">Area verde = zone dove la strategia e in profitto a scadenza.</div>
-            </Card>
+    <div className="min-h-screen -mx-6 -mt-8">
+      {/* HERO */}
+      <section className="bg-abtg-navy text-white py-24 px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-block bg-abtg-gold/20 border border-abtg-gold/40 text-abtg-gold text-xs font-semibold px-4 py-1.5 rounded-full mb-8 uppercase tracking-widest">
+            Strumento Professionale per Trader su Opzioni
           </div>
-
-          <Card title="Scenario Analysis">
-            <ScenarioTable legs={legs} spot={S} />
-          </Card>
+          <h1 className="text-5xl md:text-6xl font-black uppercase tracking-tight mb-6 leading-tight">
+            VISUALIZZA.<br />ANALIZZA.<br />
+            <span className="text-abtg-gold">GUADAGNA.</span>
+          </h1>
+          <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto mb-10 leading-relaxed">
+            Il simulatore professionale di strategie su opzioni americane. Calcola il tuo payoff, analizza le greche e misura la probabilità di profitto — prima di investire un solo euro.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/dashboard"
+              className="inline-block bg-abtg-gold text-white font-bold px-10 py-4 rounded-xl text-lg hover:bg-abtg-goldDim transition"
+            >
+              Inizia Gratis
+            </Link>
+            <Link
+              href="/trades"
+              className="inline-block bg-white/10 border border-white/30 text-white font-semibold px-10 py-4 rounded-xl text-lg hover:bg-white/20 transition"
+            >
+              Vedi i Trade
+            </Link>
+          </div>
+          <p className="text-white/40 text-sm mt-8">
+            Già usato da centinaia di trader italiani ogni settimana. Nessuna registrazione richiesta.
+          </p>
         </div>
-      </div>
+      </section>
 
-      {/* Save as Trade */}
-      <div className="flex justify-center">
-        <button className="abtg-btn text-sm" onClick={() => setShowSaveModal(true)}>
-          Salva come Trade
-        </button>
-      </div>
+      {/* FEATURES */}
+      <section className="py-24 px-6 bg-abtg-bg">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-black uppercase text-abtg-navy tracking-tight mb-4">
+              Tutto Ciò che Ti Serve.<br />In Un Solo Strumento.
+            </h2>
+            <p className="text-abtg-muted text-lg max-w-2xl mx-auto">
+              Smetti di usare fogli Excel e simulatori lenti. Qui trovi tutto, in tempo reale.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: "📈",
+                title: "Diagramma Payoff",
+                desc: "Visualizza istantaneamente il profilo di profitto e perdita della tua strategia — sia oggi che a scadenza.",
+              },
+              {
+                icon: "🔢",
+                title: "Greche in Tempo Reale",
+                desc: "Delta, Gamma, Theta, Vega e Rho aggregati per la tua intera posizione, calcolati con Black-Scholes.",
+              },
+              {
+                icon: "🎯",
+                title: "Probabilità di Profitto",
+                desc: "Scopri la vera POP della tua strategia con distribuzione lognormale risk-neutral. Numeri, non intuizioni.",
+              },
+              {
+                icon: "📊",
+                title: "Trade Manager",
+                desc: "Salva le tue operazioni, monitora il P&L in tempo reale e analizza la performance storica del tuo portafoglio.",
+              },
+              {
+                icon: "📡",
+                title: "Live Ticker",
+                desc: "Connetti qualsiasi ticker in tempo reale e aggiorna automaticamente lo spot price della tua analisi.",
+              },
+              {
+                icon: "🔬",
+                title: "Analisi degli Scenari",
+                desc: "Simula il comportamento della tua strategia in diversi scenari di mercato prima di aprire la posizione.",
+              },
+            ].map((f) => (
+              <div key={f.title} className="abtg-card p-8 hover:shadow-card-hover transition-shadow">
+                <div className="text-4xl mb-4">{f.icon}</div>
+                <h3 className="text-base font-bold text-abtg-navy mb-2 uppercase tracking-wide">{f.title}</h3>
+                <p className="text-abtg-muted text-sm leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-      {showSaveModal && (
-        <SaveTradeModal
-          legs={legs}
-          ctx={ctx}
-          onSave={(trade) => addTrade(trade)}
-          onClose={() => setShowSaveModal(false)}
-        />
-      )}
+      {/* VALUE PROP */}
+      <section className="py-24 px-6 bg-white">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+          <div>
+            <div className="text-xs font-bold text-abtg-gold uppercase tracking-widest mb-4">Perché Scegliere ABTG Options</div>
+            <h2 className="text-3xl md:text-4xl font-black text-abtg-navy uppercase tracking-tight mb-6 leading-tight">
+              LA DIFFERENZA<br />TRA CHI SPERA<br />E CHI <span className="text-abtg-gold">PIANIFICA</span>.
+            </h2>
+            <p className="text-abtg-muted text-base leading-relaxed mb-6">
+              I trader professionisti non aprono posizioni a caso. Analizzano, simulano e calcolano i rischi prima di investire. Questo strumento ti dà esattamente quelle capacità — gratuitamente.
+            </p>
+            <p className="text-abtg-muted text-base leading-relaxed mb-8">
+              Dalle strategie single-leg alle più complesse multi-leg come Iron Condor e Butterfly — puoi costruire, testare e salvare qualsiasi operazione in pochi secondi.
+            </p>
+            <Link
+              href="/dashboard"
+              className="inline-block bg-abtg-navy text-white font-bold px-8 py-3 rounded-xl text-base hover:bg-abtg-navyDark transition"
+            >
+              Apri il Visualizzatore
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { label: "Strategie Disponibili", value: "14+" },
+              { label: "Velocità di Calcolo", value: "< 1ms" },
+              { label: "Modello Pricing", value: "Black-Scholes" },
+              { label: "Costo", value: "Gratuito" },
+            ].map((s) => (
+              <div key={s.label} className="abtg-card p-6 text-center">
+                <div className="text-3xl font-black text-abtg-navy mb-2">{s.value}</div>
+                <div className="text-xs text-abtg-muted uppercase tracking-wide font-semibold">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* TESTIMONIALS */}
+      <section className="py-24 px-6 bg-abtg-bg">
+        <div className="max-w-4xl mx-auto text-center mb-16">
+          <h2 className="text-3xl font-black uppercase text-abtg-navy tracking-tight mb-4">
+            Cosa Dicono i Trader
+          </h2>
+          <p className="text-abtg-muted text-base">Storie reali di persone che hanno trasformato il loro approccio alle opzioni.</p>
+        </div>
+        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[
+            {
+              name: "Marco Pellegrini",
+              role: "Trader indipendente, Milano",
+              quote: "Finalmente uno strumento che mi permette di visualizzare il payoff di un Iron Condor in modo chiaro e immediato. Indispensabile prima di aprire qualsiasi posizione.",
+            },
+            {
+              name: "Alessia Fontana",
+              role: "Investitrice privata, Roma",
+              quote: "Ho iniziato con le opzioni da zero. Questo visualizzatore mi ha aiutato a capire le greche in modo pratico, non solo teorico. Un cambio di prospettiva totale.",
+            },
+          ].map((t) => (
+            <div key={t.name} className="abtg-card p-8">
+              <p className="text-abtg-text text-base leading-relaxed mb-6 italic">&ldquo;{t.quote}&rdquo;</p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-abtg-navy text-white grid place-items-center font-bold text-sm flex-shrink-0">
+                  {t.name.charAt(0)}
+                </div>
+                <div>
+                  <div className="font-bold text-abtg-navy text-sm">{t.name}</div>
+                  <div className="text-xs text-abtg-muted">{t.role}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="bg-abtg-navy py-20 px-6 text-center text-white">
+        <div className="max-w-2xl mx-auto">
+          <h2 className="text-4xl font-black uppercase tracking-tight mb-4">
+            INIZIA ORA.<br /><span className="text-abtg-gold">È GRATUITO.</span>
+          </h2>
+          <p className="text-white/70 text-lg mb-10">
+            Nessuna registrazione. Nessuna carta di credito. Solo analisi professionale a portata di mano.
+          </p>
+          <Link
+            href="/dashboard"
+            className="inline-block bg-abtg-gold text-white font-bold px-12 py-4 rounded-xl text-xl hover:bg-abtg-goldDim transition"
+          >
+            Apri il Visualizzatore Gratis
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

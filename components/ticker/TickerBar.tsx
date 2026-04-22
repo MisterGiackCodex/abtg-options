@@ -33,7 +33,7 @@ function QuoteAge({ ts }: { ts: number }) {
   }, []);
   const age = Math.max(0, now - ts);
   const label = age < 60 ? `${age}s fa` : age < 3600 ? `${Math.floor(age / 60)}m fa` : `${Math.floor(age / 3600)}h fa`;
-  const color = age < 60 ? "text-abtg-profit" : age < 900 ? "text-yellow-400" : "text-abtg-loss";
+  const color = age < 60 ? "text-abtg-profit" : age < 900 ? "text-yellow-500" : "text-abtg-loss";
   return <span className={`text-[10px] font-mono ${color}`} title="Età ultimo dato">● {label}</span>;
 }
 
@@ -98,7 +98,7 @@ export function TickerBar({ quote, status, error, onConnect, onDisconnect }: Tic
     : [];
 
   return (
-    <div className="bg-abtg-surface border border-abtg-border rounded-lg px-4 py-3 flex items-center gap-4 flex-wrap">
+    <div className="bg-white border border-abtg-border rounded-xl px-5 py-3 flex items-center gap-4 flex-wrap shadow-card">
       <form onSubmit={handleSubmit} className="flex items-center gap-2 relative">
         <input
           ref={inputRef}
@@ -114,13 +114,13 @@ export function TickerBar({ quote, status, error, onConnect, onDisconnect }: Tic
           spellCheck={false}
         />
         {focused && suggestions.length > 0 && (
-          <div className="absolute top-full left-0 mt-1 bg-abtg-surface border border-abtg-border rounded shadow-lg z-20 w-40">
+          <div className="absolute top-full left-0 mt-1 bg-white border border-abtg-border rounded-lg shadow-card-hover z-20 w-40">
             {suggestions.map((s) => (
               <button
                 key={s}
                 type="button"
                 onMouseDown={(e) => { e.preventDefault(); switchTo(s); }}
-                className="w-full text-left px-3 py-1.5 text-xs hover:bg-abtg-bg font-mono"
+                className="w-full text-left px-3 py-2 text-xs hover:bg-abtg-bg font-mono text-abtg-text transition"
               >
                 {s}
               </button>
@@ -137,10 +137,10 @@ export function TickerBar({ quote, status, error, onConnect, onDisconnect }: Tic
               key={s}
               type="button"
               onClick={() => switchTo(s)}
-              className={`text-xs font-mono px-2 py-1 rounded border transition-colors ${
+              className={`text-xs font-mono px-2.5 py-1 rounded-md border transition-colors ${
                 active
-                  ? "bg-abtg-gold/20 text-abtg-gold border-abtg-gold/40"
-                  : "bg-abtg-bg text-abtg-muted border-abtg-border hover:border-abtg-gold/40 hover:text-abtg-text"
+                  ? "bg-abtg-navy/10 text-abtg-navy border-abtg-navy/40 font-semibold"
+                  : "bg-abtg-bg text-abtg-muted border-abtg-border hover:border-abtg-navy/40 hover:text-abtg-navy"
               }`}
             >
               {s}
@@ -151,14 +151,14 @@ export function TickerBar({ quote, status, error, onConnect, onDisconnect }: Tic
 
       <div className="flex items-center gap-2">
         <span className={`w-2 h-2 rounded-full ${statusDot[status]}`} />
-        <span className="text-xs text-abtg-muted">{statusLabel[status]}</span>
+        <span className="text-xs text-abtg-muted font-medium">{statusLabel[status]}</span>
       </div>
 
       {quote && (
         <div className="flex items-center gap-3 ml-auto">
-          <span className="text-sm font-bold text-abtg-gold">{quote.symbol}</span>
-          <span className="text-lg font-mono text-abtg-text">${quote.price.toFixed(2)}</span>
-          <span className={`text-sm font-mono ${quote.change >= 0 ? "text-abtg-profit" : "text-abtg-loss"}`}>
+          <span className="text-sm font-bold text-abtg-navy">{quote.symbol}</span>
+          <span className="text-lg font-mono text-abtg-text font-semibold">${quote.price.toFixed(2)}</span>
+          <span className={`text-sm font-mono font-medium ${quote.change >= 0 ? "text-abtg-profit" : "text-abtg-loss"}`}>
             {quote.change >= 0 ? "+" : ""}
             {quote.change.toFixed(2)} ({quote.changePercent >= 0 ? "+" : ""}
             {quote.changePercent.toFixed(2)}%)
@@ -167,7 +167,7 @@ export function TickerBar({ quote, status, error, onConnect, onDisconnect }: Tic
             <button
               type="button"
               onClick={onDisconnect}
-              className="text-abtg-muted hover:text-abtg-loss text-sm px-1"
+              className="text-abtg-muted hover:text-abtg-loss text-sm px-1 transition"
               title="Disconnetti"
               aria-label="Disconnetti"
             >
@@ -177,7 +177,7 @@ export function TickerBar({ quote, status, error, onConnect, onDisconnect }: Tic
         </div>
       )}
 
-      {error && !quote && <span className="text-xs text-abtg-loss ml-auto">{error}</span>}
+      {error && !quote && <span className="text-xs text-abtg-loss ml-auto font-medium">{error}</span>}
 
       {status === "live" && quote && <QuoteAge ts={quote.timestamp} />}
     </div>

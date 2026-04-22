@@ -12,11 +12,11 @@ export function LegList({ legs, onChange }: { legs: Leg[]; onChange: (legs: Leg[
   return (
     <div className="space-y-3">
       {legs.map((l, i) => (
-        <div key={l.id} className="bg-abtg-bg border border-abtg-border rounded-lg p-3 space-y-2">
+        <div key={l.id} className="bg-abtg-bg border border-abtg-border rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-abtg-gold">Leg {i + 1}</span>
+            <span className="text-xs font-bold text-abtg-navy uppercase tracking-wider">Leg {i + 1}</span>
             <button
-              className="text-abtg-loss hover:text-red-400 text-xs px-1"
+              className="text-abtg-loss hover:text-red-700 text-xs px-1 transition font-medium"
               onClick={() => remove(i)}
               aria-label="rimuovi"
             >
@@ -26,7 +26,7 @@ export function LegList({ legs, onChange }: { legs: Leg[]; onChange: (legs: Leg[
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-abtg-muted mb-0.5 block">Tipo</label>
+              <label className="text-[10px] uppercase tracking-wider text-abtg-muted mb-1 block font-semibold">Tipo</label>
               <select
                 className="abtg-input text-sm py-1.5"
                 value={l.kind}
@@ -38,7 +38,7 @@ export function LegList({ legs, onChange }: { legs: Leg[]; onChange: (legs: Leg[
               </select>
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-abtg-muted mb-0.5 block">Lato</label>
+              <label className="text-[10px] uppercase tracking-wider text-abtg-muted mb-1 block font-semibold">Lato</label>
               <select
                 className="abtg-input text-sm py-1.5"
                 value={l.side}
@@ -52,7 +52,7 @@ export function LegList({ legs, onChange }: { legs: Leg[]; onChange: (legs: Leg[
 
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-abtg-muted mb-0.5 block">Strike</label>
+              <label className="text-[10px] uppercase tracking-wider text-abtg-muted mb-1 block font-semibold">Strike</label>
               <input
                 type="number"
                 className="abtg-input text-sm py-1.5 font-mono"
@@ -63,7 +63,7 @@ export function LegList({ legs, onChange }: { legs: Leg[]; onChange: (legs: Leg[
               />
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-abtg-muted mb-0.5 block">Premio</label>
+              <label className="text-[10px] uppercase tracking-wider text-abtg-muted mb-1 block font-semibold">Premio</label>
               <input
                 type="number"
                 className="abtg-input text-sm py-1.5 font-mono"
@@ -73,7 +73,7 @@ export function LegList({ legs, onChange }: { legs: Leg[]; onChange: (legs: Leg[
               />
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-abtg-muted mb-0.5 block">Qty</label>
+              <label className="text-[10px] uppercase tracking-wider text-abtg-muted mb-1 block font-semibold">Qty</label>
               <input
                 type="number"
                 className="abtg-input text-sm py-1.5 font-mono"
@@ -90,7 +90,7 @@ export function LegList({ legs, onChange }: { legs: Leg[]; onChange: (legs: Leg[
         className="abtg-btn w-full text-sm"
         onClick={() => onChange([...legs, { id: `leg_${Date.now()}`, kind: "call", side: "long", strike: 100, premium: 1, quantity: 1 }])}
       >
-        + Aggiungi leg
+        + Aggiungi Leg
       </button>
     </div>
   );
