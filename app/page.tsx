@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { NumberField } from "@/components/ui/NumberField";
 import { PayoffChart } from "@/components/charts/PayoffChart";
@@ -55,6 +55,24 @@ export default function DashboardPage() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const { addTrade } = useTrades();
 
+  // Risk management (persisted in localStorage)
+  const [accountSize, setAccountSize] = useState(10000);
+  const [riskPct, setRiskPct] = useState(2);
+  useEffect(() => {
+    try {
+      const a = localStorage.getItem("abtg.accountSize");
+      const r = localStorage.getItem("abtg.riskPct");
+      if (a) setAccountSize(parseFloat(a));
+      if (r) setRiskPct(parseFloat(r));
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem("abtg.accountSize", String(accountSize));
+      localStorage.setItem("abtg.riskPct", String(riskPct));
+    } catch {}
+  }, [accountSize, riskPct]);
+
   const T = days / 365;
   const ctx = { S, T, r, sigma };
 
@@ -108,6 +126,23 @@ export default function DashboardPage() {
   const ln: LNParams = { S, T, r, sigma };
   const pop = useMemo(() => (T > 0 ? probabilityOfProfit(legs, ln) : 0), [legs, S, sigma, T, r]);
   const ev = useMemo(() => (T > 0 ? expectedValue(legs, ln) : 0), [legs, S, sigma, T, r]);
+
+  // Risk metrics
+  const risk = useMemo(() => {
+    const targetRisk = accountSize * (riskPct / 100);
+    const currentLoss = mp.unboundedDown ? Infinity : Math.abs(mp.maxLoss);
+    const lossPerContract = qty > 0 ? currentLoss / qty : currentLoss;
+    const pctOfAccount = accountSize > 0 ? (currentLoss / accountSize) * 100 : 0;
+    const suggestedQty = lossPerContract > 0 && isFinite(lossPerContract)
+      ? Math.max(1, Math.floor(targetRisk / lossPerContract))
+      : 0;
+    // Kelly fraction f* = p - q/b where b = maxProfit/maxLoss
+    const p = pop;
+    const q = 1 - p;
+    const b = currentLoss > 0 && !mp.unboundedUp ? mp.maxProfit / currentLoss : 0;
+    const kelly = b > 0 ? Math.max(0, p - q / b) : 0;
+    return { targetRisk, currentLoss, pctOfAccount, suggestedQty, kelly };
+  }, [accountSize, riskPct, mp, qty, pop]);
 
   const strikes = Array.from(new Set(legs.filter((l) => l.kind !== "stock").map((l) => l.strike)));
   const activePreset = PRESETS.find((p) => p.id === preset);
@@ -225,6 +260,48 @@ export default function DashboardPage() {
             )}
           </Card>
 
+          {/* Risk Manager */}
+          <Card title="Gestione del Rischio" padding="p-4">
+            <div className="grid grid-cols-2 gap-2.5 mb-3">
+              <NumberField label="Capitale ($)" value={accountSize} onChange={setAccountSize} step={500} min={0} />
+              <NumberField label="Rischio per Trade" value={riskPct} onChange={setRiskPct} step={0.25} min={0.1} suffix="%" />
+            </div>
+            <div className="space-y-2 text-xs">
+              <RiskRow label="Budget Rischio" value={`$${risk.targetRisk.toFixed(0)}`} />
+              <RiskRow
+                label="Perdita Max Attuale"
+                value={mp.unboundedDown ? "-∞" : `-$${risk.currentLoss.toFixed(0)}`}
+                tone={mp.unboundedDown ? "loss" : undefined}
+              />
+              <RiskRow
+                label="% del Capitale"
+                value={mp.unboundedDown ? "∞" : `${risk.pctOfAccount.toFixed(2)}%`}
+                tone={
+                  mp.unboundedDown || risk.pctOfAccount > riskPct * 1.5 ? "loss" :
+                  risk.pctOfAccount > riskPct ? "warn" : "profit"
+                }
+              />
+              <RiskRow
+                label="Qty Suggerita"
+                value={risk.suggestedQty > 0 ? `${risk.suggestedQty} contratti` : "—"}
+                hint={risk.suggestedQty > 0 && risk.suggestedQty !== qty ? `vs ${qty} attuali` : undefined}
+              />
+              <RiskRow
+                label="Kelly Fraction"
+                value={`${(risk.kelly * 100).toFixed(1)}%`}
+                hint={risk.kelly > 0 ? "del capitale" : "EV negativo"}
+              />
+            </div>
+            {risk.suggestedQty > 0 && risk.suggestedQty !== qty && (
+              <button
+                className="abtg-btn-navy w-full mt-3 text-xs py-2 rounded-lg"
+                onClick={() => setQty(risk.suggestedQty)}
+              >
+                Applica Qty Suggerita ({risk.suggestedQty})
+              </button>
+            )}
+          </Card>
+
         </aside>
 
         {/* ── CENTER / RIGHT: 8 cols ── */}
@@ -286,9 +363,13 @@ export default function DashboardPage() {
                 }
               />
               <MetricCompact
-                label="Legs"
-                value={`${legs.length}`}
-                hint={`${legs.filter(l => l.side === "long").length}L / ${legs.filter(l => l.side === "short").length}S`}
+                label="Rischio % Capitale"
+                value={mp.unboundedDown ? "∞" : `${risk.pctOfAccount.toFixed(2)}%`}
+                tone={
+                  mp.unboundedDown || risk.pctOfAccount > riskPct * 1.5 ? "loss" :
+                  risk.pctOfAccount > riskPct ? "gold" : "profit"
+                }
+                hint={`Target ${riskPct}%`}
               />
             </div>
           </Card>
@@ -374,6 +455,33 @@ export default function DashboardPage() {
           onClose={() => setShowSaveModal(false)}
         />
       )}
+    </div>
+  );
+}
+
+/* ── RiskRow: compact label / value row for the risk panel ── */
+function RiskRow({
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: "profit" | "loss" | "warn";
+}) {
+  const toneClass =
+    tone === "profit" ? "text-abtg-profit" :
+    tone === "loss"   ? "text-abtg-loss"   :
+    tone === "warn"   ? "text-abtg-gold"   : "text-abtg-text";
+  return (
+    <div className="flex items-baseline justify-between gap-2 border-b border-abtg-border/60 pb-1.5 last:border-0 last:pb-0">
+      <span className="text-abtg-muted font-medium">{label}</span>
+      <span className="text-right">
+        <span className={`font-mono font-semibold ${toneClass}`}>{value}</span>
+        {hint && <span className="block text-[10px] text-abtg-muted leading-none mt-0.5">{hint}</span>}
+      </span>
     </div>
   );
 }
