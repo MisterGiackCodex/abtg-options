@@ -178,6 +178,50 @@ export function computePayoffRange(
   return { minS, maxS, yMin: lo - padAmt, yMax: hi + padAmt };
 }
 
+// Report-mode payoff viewport: wider X (cover strikes + 3σ), full Y (no ±1σ clipping).
+// Use for printed/exported PDF-like outputs where the FULL strategy profile must be visible
+// (essential for covered call flat plateau and multi-leg spreads with wings far from spot).
+export function computeReportPayoffRange(
+  legs: Leg[],
+  ctx: MarketCtx,
+  opts?: { kSigma?: number; yPad?: number; steps?: number }
+): { minS: number; maxS: number; yMin: number; yMax: number } {
+  const kSigma = opts?.kSigma ?? 3.5;
+  const yPad = opts?.yPad ?? 0.15;
+  const steps = opts?.steps ?? 160;
+
+  const strikes = legs.filter((l) => l.kind !== "stock").map((l) => l.strike);
+  // For covered call / stock legs, use the premium as cost-basis anchor
+  const stockBasis = legs.filter((l) => l.kind === "stock").map((l) => l.premium);
+  const anchors = [...strikes, ...stockBasis, ctx.S];
+  const kMin = Math.min(...anchors);
+  const kMax = Math.max(...anchors);
+  const mid = (kMin + kMax) / 2;
+  const spread = kMax - kMin;
+
+  const sigmaMove = ctx.sigma * Math.sqrt(Math.max(ctx.T, 1 / 365)) * ctx.S * kSigma;
+  // Wider halfWidth: cover strikes with margin for spreads + ~3σ move + 25% buffer
+  const halfWidth = Math.max(sigmaMove, spread * 2.0 + ctx.S * 0.05, ctx.S * 0.25);
+
+  const minS = Math.max(0.01, mid - halfWidth);
+  const maxS = mid + halfWidth;
+
+  // Sample Y over FULL visible X range (no ±1σ clip) — the whole profile must be visible.
+  const dS = (maxS - minS) / steps;
+  let lo = Infinity, hi = -Infinity;
+  for (let i = 0; i <= steps; i++) {
+    const S = minS + i * dS;
+    const e = strategyPayoff(legs, S);
+    if (e < lo) lo = e;
+    if (e > hi) hi = e;
+  }
+  if (!isFinite(lo) || !isFinite(hi)) { lo = -1; hi = 1; }
+  if (lo === hi) { lo -= 1; hi += 1; }
+
+  const padAmt = (hi - lo) * yPad;
+  return { minS, maxS, yMin: lo - padAmt, yMax: hi + padAmt };
+}
+
 // Max profit/loss on expiration across range. Infinity possible for naked short/long calls.
 export function maxProfitLoss(legs: Leg[], minS: number, maxS: number, steps = 500): { maxProfit: number; maxLoss: number; unboundedUp: boolean; unboundedDown: boolean; } {
   let maxProfit = -Infinity, maxLoss = Infinity;
@@ -188,10 +232,15 @@ export function maxProfitLoss(legs: Leg[], minS: number, maxS: number, steps = 5
     if (v > maxProfit) maxProfit = v;
     if (v < maxLoss) maxLoss = v;
   }
-  // Detect unbounded: slope at extremes
-  const slopeUp = (strategyPayoff(legs, maxS) - strategyPayoff(legs, maxS * 0.95)) / (maxS * 0.05);
-  const slopeDown = (strategyPayoff(legs, minS * 1.05) - strategyPayoff(legs, Math.max(minS, 0.01))) / (minS * 0.05 || 1);
-  const unboundedUp = slopeUp > 1;
-  const unboundedDown = slopeDown > 1; // negative slope down means loss grows
+  // Detect unbounded by comparing payoff at far-out points vs reference.
+  // Replaces the fragile slope-based heuristic that mis-classified covered calls.
+  const farLow  = Math.max(0.01, minS * 0.05);
+  const farHigh = maxS * 4;
+  const payFarLow  = strategyPayoff(legs, farLow);
+  const payFarHigh = strategyPayoff(legs, farHigh);
+  const refLow  = strategyPayoff(legs, minS);
+  const refHigh = strategyPayoff(legs, maxS);
+  const unboundedUp   = payFarHigh - refHigh >  Math.abs(refHigh) * 0.5 + 50;
+  const unboundedDown = payFarLow  - refLow  < -(Math.abs(refLow)  * 0.5 + 50);
   return { maxProfit, maxLoss, unboundedUp, unboundedDown };
 }

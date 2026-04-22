@@ -18,6 +18,7 @@ import {
   aggregateGreeks,
   breakEvenPoints,
   computePayoffRange,
+  computeReportPayoffRange,
   maxProfitLoss,
   netDebit,
   samplePayoff,
@@ -205,6 +206,21 @@ export default function DashboardPage() {
   const [reportTitle, setReportTitle] = useState("");
   const [exporting, setExporting] = useState(false);
 
+  // Report uses wider viewport (no ±1σ clip) so covered call plateau and
+  // multi-leg wings stay visible in the printed output
+  const reportRange = useMemo(
+    () => computeReportPayoffRange(legs, ctx),
+    [legs, S, sigma, T, r]
+  );
+  const reportPayoffData = useMemo(
+    () => samplePayoff(legs, ctx, reportRange.minS, reportRange.maxS, 160),
+    [legs, S, sigma, T, r, reportRange.minS, reportRange.maxS]
+  );
+  const reportBes = useMemo(
+    () => breakEvenPoints(legs, reportRange.minS, reportRange.maxS, 2000),
+    [legs, reportRange.minS, reportRange.maxS]
+  );
+
   const reportData: ReportData = useMemo(() => ({
     title: reportTitle.trim() || (activePreset?.label ?? "Strategia"),
     ticker: tickerSymbol ?? undefined,
@@ -218,18 +234,19 @@ export default function DashboardPage() {
       maxLoss: mp.maxLoss,
       unboundedUp: mp.unboundedUp,
       unboundedDown: mp.unboundedDown,
-      breakEvens: bes,
+      breakEvens: reportBes,
       pop,
       ev,
       riskReward: mp.unboundedUp || mp.unboundedDown || mp.maxLoss === 0 ? "—" : `${Math.abs(mp.maxProfit / mp.maxLoss).toFixed(2)}x`,
       legsCount: legs.length,
     },
     greeks,
-    payoffData,
+    payoffData: reportPayoffData,
     strikes,
-    yDomain: [yMin, yMax],
+    yDomain: [reportRange.yMin, reportRange.yMax],
     generatedAt: new Date().toLocaleString("it-IT"),
-  }), [reportTitle, activePreset, preset, tickerSymbol, S, sigma, days, r, qty, nd, mp, bes, pop, ev, legs.length, greeks, payoffData, strikes, yMin, yMax]);
+  }), [reportTitle, activePreset, preset, tickerSymbol, S, sigma, days, r, qty, nd, mp, reportBes, pop, ev, legs.length, greeks, reportPayoffData, strikes, reportRange]);
+
 
   const exportReport = useCallback(async () => {
     if (!reportRef.current) return;

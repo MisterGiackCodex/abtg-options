@@ -124,5 +124,5 @@ export const PRESETS: PresetMeta[] = [
   { id: "shortStraddle", label: "Short Straddle", category: "multi", bias: "neutral", description: "Short call + short put: incassa premio se il prezzo resta fermo.", strikes: ["K"] },
   { id: "longStrangle", label: "Long Strangle", category: "multi", bias: "neutral", description: "Long put + long call OTM: economico, serve grande movimento.", strikes: ["Kp", "Kc"] },
   { id: "ironCondor", label: "Iron Condor", category: "multi", bias: "neutral", description: "4 gambe: incassa premio se il prezzo resta nel range centrale.", strikes: ["Kp2", "Kp1", "Kc1", "Kc2"] },
-  { id: "callButterfly", label: "Call Butterfly", category: "multi", bias: "neutral", description: "Profitto massimo se prezzo scade a K2.", strikes: ["K1", "K2", "K3"] },
+  { id: "callButterfly", label: "Call Butterfly", category: "multi", bias: "neutral", description: "Profitto massimo vicino a K2 per ali equidistanti (K1<K2<K3).", strikes: ["K1", "K2", "K3"] },
 ];
