@@ -37,7 +37,7 @@ export default function TradesPage() {
           </p>
         </div>
         <div className="flex gap-2 items-center">
-          <a href="/dashboard" className="abtg-btn-navy text-xs px-4 py-2 rounded-lg">+ Nuovo Trade</a>
+          <a href="/" className="abtg-btn-navy text-xs px-4 py-2 rounded-lg">+ Nuovo Trade</a>
           <TradeActions onImportJSON={importJSON} onExportJSON={exportJSON} onExportCSV={exportCSV} />
         </div>
       </div>

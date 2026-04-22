@@ -20,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </a>
             <nav className="flex gap-6 text-sm">
-              <a href="/dashboard" className="text-abtg-muted hover:text-abtg-navy transition font-medium">Dashboard</a>
+              <a href="/" className="text-abtg-muted hover:text-abtg-navy transition font-medium">Dashboard</a>
               <a href="/trades" className="text-abtg-muted hover:text-abtg-navy transition font-medium">Trade Manager</a>
               <a href="/learn" className="text-abtg-muted hover:text-abtg-navy transition font-medium">Impara</a>
             </nav>
