@@ -7,15 +7,15 @@ export const metadata: Metadata = {
   description: "Visualizzatore di strategie su opzioni americane — Alfio Bardolla Training Group",
   icons: {
     icon: [
-      { url: "/logo-abtg.webp", type: "image/webp" },
+      { url: "/logo-abtg.svg", type: "image/svg+xml" },
     ],
-    shortcut: "/logo-abtg.webp",
-    apple: "/logo-abtg.webp",
+    shortcut: "/logo-abtg.svg",
+    apple: "/logo-abtg.svg",
   },
   openGraph: {
     title: "ABTG Options Visualizer",
     description: "Visualizzatore di strategie su opzioni americane",
-    images: ["/logo-abtg.webp"],
+    images: ["/logo-abtg.svg"],
   },
 };
 
@@ -26,8 +26,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="border-b border-abtg-border bg-white shadow-sm">
           <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
             <a href="/" className="flex items-center gap-3">
-              <Image src="/logo-abtg.webp" alt="ABTG" width={160} height={40} className="h-9 w-auto" priority />
-              <div className="text-abtg-navy font-bold tracking-wide text-base">Options Visualizer</div>
+              <Image src="/logo-abtg.svg" alt="ABTG" width={40} height={40} className="h-10 w-10 rounded-md" priority />
+              <div className="text-abtg-navy font-bold tracking-wide text-base">ABTG Options Visualizer</div>
             </a>
             <nav className="flex gap-6 text-sm">
               <a href="/" className="text-abtg-muted hover:text-abtg-navy transition font-medium">Dashboard</a>
