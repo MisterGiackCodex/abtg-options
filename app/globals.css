@@ -9,7 +9,12 @@
 html, body {
   background: #F5F7FA;
   color: #1A202C;
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-family: var(--font-roboto), Roboto, system-ui, -apple-system, Segoe UI, sans-serif;
+  font-weight: 400;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
 }
 
 .abtg-card {

@@ -225,6 +225,39 @@ export default function DashboardPage() {
             )}
           </Card>
 
+          {/* Legs editor — collapsible, under Strategy */}
+          <details className="group abtg-card overflow-hidden">
+            <summary className="flex items-center justify-between px-4 py-3 cursor-pointer select-none list-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-abtg-navy/40 rounded-xl">
+              <span className="text-xs uppercase tracking-widest text-abtg-navy font-bold">
+                Leg Personalizzabili
+                <span className="ml-2 text-abtg-muted font-normal normal-case tracking-normal text-[11px]">
+                  ({legs.length} leg{legs.length !== 1 ? "s" : ""}{customLegs.length > 0 ? " — personalizzate" : " — preset"})
+                </span>
+              </span>
+              <svg
+                className="w-4 h-4 text-abtg-muted transition-transform group-open:rotate-180"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div className="px-4 pb-4 pt-1 border-t border-abtg-border mt-0">
+              <LegList legs={legs} onChange={setCustomLegs} />
+              {customLegs.length > 0 && (
+                <button
+                  className="abtg-btn mt-3 text-xs w-full"
+                  onClick={() => setCustomLegs([])}
+                >
+                  Ripristina Preset
+                </button>
+              )}
+            </div>
+          </details>
+
         </aside>
 
         {/* ── CENTER / RIGHT: 8 cols ── */}
@@ -310,40 +343,6 @@ export default function DashboardPage() {
               </span>
             </div>
           </Card>
-
-          {/* Legs editor — collapsible, closed by default */}
-          <details className="group abtg-card overflow-hidden">
-            <summary className="flex items-center justify-between px-4 py-3 cursor-pointer select-none list-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-abtg-navy/40 rounded-xl">
-              <span className="text-xs uppercase tracking-widest text-abtg-navy font-bold">
-                Leg Personalizzabili
-                <span className="ml-2 text-abtg-muted font-normal normal-case tracking-normal text-[11px]">
-                  ({legs.length} leg{legs.length !== 1 ? "s" : ""}{customLegs.length > 0 ? " — personalizzate" : " — preset"})
-                </span>
-              </span>
-              <svg
-                className="w-4 h-4 text-abtg-muted transition-transform group-open:rotate-180"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-                aria-hidden="true"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </summary>
-
-            <div className="px-4 pb-4 pt-1 border-t border-abtg-border mt-0">
-              <LegList legs={legs} onChange={setCustomLegs} />
-              {customLegs.length > 0 && (
-                <button
-                  className="abtg-btn mt-3 text-xs w-full"
-                  onClick={() => setCustomLegs([])}
-                >
-                  Ripristina Preset
-                </button>
-              )}
-            </div>
-          </details>
 
         </main>
       </div>
