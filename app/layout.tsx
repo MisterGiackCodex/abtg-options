@@ -44,7 +44,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </a>
             <nav className="flex gap-5 text-sm">
               <a href="/" className="text-abtg-muted hover:text-abtg-navy transition font-medium">Dashboard</a>
-              <a href="/trades" className="text-abtg-muted hover:text-abtg-navy transition font-medium">Trade Manager</a>
               <a href="/learn" className="text-abtg-muted hover:text-abtg-navy transition font-medium">Impara</a>
             </nav>
           </div>

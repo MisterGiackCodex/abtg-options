@@ -13,9 +13,7 @@ import { GreeksGrid } from "@/components/metrics/MetricsPanel";
 import { ScenarioTable } from "@/components/metrics/ScenarioTable";
 import { LegList } from "@/components/strategy/LegList";
 import { TickerBar } from "@/components/ticker/TickerBar";
-import { SaveTradeModal } from "@/components/trades/SaveTradeModal";
 import { useMarketFeed } from "@/hooks/useMarketFeed";
-import { useTrades } from "@/hooks/useTrades";
 import {
   aggregateGreeks,
   breakEvenPoints,
@@ -127,8 +125,6 @@ export default function DashboardPage() {
   }
 
   // Save trade modal
-  const [showSaveModal, setShowSaveModal] = useState(false);
-  const { addTrade } = useTrades();
 
   const T = days / 365;
   const ctx = useMemo(() => ({ S, T, r, sigma }), [S, T, r, sigma]);
@@ -706,12 +702,6 @@ export default function DashboardPage() {
                   >
                     {exporting ? "Esporto..." : "↓ Scarica Report"}
                   </button>
-                  <button
-                    className="abtg-btn-navy px-5 py-1.5 rounded-lg text-xs font-semibold"
-                    onClick={() => setShowSaveModal(true)}
-                  >
-                    Salva Trade
-                  </button>
                 </div>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -833,15 +823,6 @@ export default function DashboardPage() {
 
           </main>
         </>
-      )}
-
-      {showSaveModal && (
-        <SaveTradeModal
-          legs={legs}
-          ctx={ctx}
-          onSave={(trade) => addTrade(trade)}
-          onClose={() => setShowSaveModal(false)}
-        />
       )}
 
       {/* Hidden report DOM rendered offscreen for PNG capture */}
