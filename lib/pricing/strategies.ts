@@ -148,14 +148,15 @@ export function computePayoffRange(
   const minS = Math.max(0.01, mid - halfWidth);
   const maxS = mid + halfWidth;
 
-  // Y-sampling window. For strategies with unbounded tails (naked short calls, etc.)
-  // we clip to ±1σ around spot so the "likely" zone stays readable. For fully bounded
-  // strategies — and for any strategy holding stock (covered call, collars, etc.) —
-  // we sample Y across the entire visible X range so the full payoff profile, including
-  // linear stock-driven losses, is captured instead of clipped.
+  // Y-sampling window. The ±1σ clip exists only to protect against unbounded
+  // LOSS tails (naked short calls, short straddles) dominating the Y-axis and
+  // squashing the informative center. When the strategy is long-biased or
+  // bounded, we sample Y across the full visible X range so tail profits
+  // (long call hockey stick, straddle/strangle V-tails, covered-call linear
+  // downside) are fully visible instead of clipped.
   const slope = slopeAtInfinity(legs);
   const hasStock = legs.some((l) => l.kind === "stock");
-  const fullRange = hasStock || Math.abs(slope) < 1e-9;
+  const fullRange = hasStock || slope >= -1e-9;
   const sigma1 = ctx.sigma * Math.sqrt(Math.max(ctx.T, 1 / 365)) * ctx.S;
   const yLo = fullRange ? minS : Math.max(minS, ctx.S - sigma1);
   const yHi = fullRange ? maxS : Math.min(maxS, ctx.S + sigma1);
