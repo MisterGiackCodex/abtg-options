@@ -55,15 +55,19 @@ export function CompareChart({
   const chartData = mergeSeries(series);
 
   return (
-    <div className="h-[380px] w-full">
-      <ResponsiveContainer>
-        <LineChart data={chartData} margin={{ top: 16, right: 20, bottom: 10, left: 10 }}>
+    <div className="h-[280px] sm:h-[340px] lg:h-[420px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={chartData} margin={{ top: 16, right: 24, bottom: 8, left: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
           <XAxis
             dataKey="S"
+            type="number"
+            domain={["dataMin", "dataMax"]}
             tickFormatter={(v) => `$${Number(v).toFixed(0)}`}
             stroke="#64748B"
             fontSize={11}
+            tickCount={7}
+            allowDecimals={false}
           />
           <YAxis
             tickFormatter={fmtMoney}
@@ -71,6 +75,8 @@ export function CompareChart({
             fontSize={11}
             domain={yDomain ?? ["auto", "auto"]}
             allowDataOverflow={!!yDomain}
+            width={60}
+            tickCount={6}
           />
           <Tooltip
             contentStyle={{

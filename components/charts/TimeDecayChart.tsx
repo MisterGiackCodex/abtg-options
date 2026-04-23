@@ -41,9 +41,9 @@ export function TimeDecayChart({
   }
 
   return (
-    <div className="h-[280px] w-full">
-      <ResponsiveContainer>
-        <ComposedChart data={data} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
+    <div className="h-[240px] sm:h-[300px] lg:h-[340px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={data} margin={{ top: 12, right: 24, bottom: 24, left: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
           <XAxis
             dataKey="days"

@@ -17,12 +17,24 @@ export function POPDistribution({ legs, ln, minS, maxS }: { legs: Leg[]; ln: LNP
     points.push({ S, pdf, profitZone: pay >= 0 ? pdf : null, payoff: pay });
   }
 
+  const xMin = points.length ? points[0].S : 0;
+  const xMax = points.length ? points[points.length - 1].S : 1;
+
   return (
-    <div className="h-[300px] w-full">
-      <ResponsiveContainer>
-        <ComposedChart data={points} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
+    <div className="h-[240px] sm:h-[300px] lg:h-[340px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={points} margin={{ top: 12, right: 24, bottom: 8, left: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-          <XAxis dataKey="S" tickFormatter={(v) => `$${Number(v).toFixed(0)}`} stroke="#64748B" fontSize={11} />
+          <XAxis
+            dataKey="S"
+            type="number"
+            domain={[xMin, xMax]}
+            tickFormatter={(v) => `$${Number(v).toFixed(0)}`}
+            stroke="#64748B"
+            fontSize={11}
+            tickCount={7}
+            allowDecimals={false}
+          />
           <YAxis tickFormatter={() => ""} stroke="#64748B" fontSize={11} width={20} />
           <Tooltip
             contentStyle={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}

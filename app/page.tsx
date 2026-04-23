@@ -422,13 +422,14 @@ export default function DashboardPage() {
 
           {/* Shared market params — same row as single/multi */}
           <Card title="Parametri di Mercato" padding="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               <NumberField label="Spot" value={S} onChange={setS} step={0.5} />
               <NumberField label="Giorni a Scad." value={days} onChange={setDays} step={1} min={0} />
-              <NumberField label="Risk-Free Rate" value={r * 100} onChange={(v) => setR(v / 100)} step={0.25} suffix="%" />
+              <ReadOnlyField label="Vol. Impl." value={`${(sigma * 100).toFixed(0)}%`} hint="Default modello" />
+              <ReadOnlyField label="Risk-Free Rate" value={`${(r * 100).toFixed(2)}%`} hint="T-Bill USA 3M" />
             </div>
             <p className="text-[11px] text-abtg-muted mt-3 leading-relaxed border-t border-abtg-border pt-2.5">
-              <strong className="text-abtg-navy font-semibold">Cos&apos;è il Risk-Free Rate?</strong> Rendimento di un investimento privo di rischio (T-Bill USA 3 mesi). Serve al modello Black-Scholes per scontare il valore futuro delle opzioni. Valore attuale ~4–5%.
+              <strong className="text-abtg-navy font-semibold">Cos&apos;è il Risk-Free Rate?</strong> Rendimento di un investimento privo di rischio (T-Bill USA 3 mesi). Usato dal modello Black-Scholes per scontare il valore futuro delle opzioni. Valore attuale ~4–5% (tassi Fed).
             </p>
           </Card>
 
@@ -603,11 +604,14 @@ export default function DashboardPage() {
               <div className="grid grid-cols-2 gap-2.5">
                 <NumberField label="Spot" value={S} onChange={setS} step={0.5} />
                 <NumberField label="Giorni a Scad." value={days} onChange={setDays} step={1} min={0} />
-                <NumberField label="Risk-Free Rate" value={r * 100} onChange={(v) => setR(v / 100)} step={0.25} suffix="%" />
                 <NumberField label="Contratti" value={qty} onChange={setQty} step={1} min={1} />
+                <ReadOnlyField label="Vol. Impl." value={`${(sigma * 100).toFixed(0)}%`} hint="Default modello" />
+              </div>
+              <div className="mt-2.5">
+                <ReadOnlyField label="Risk-Free Rate" value={`${(r * 100).toFixed(2)}%`} hint="T-Bill USA 3M" full />
               </div>
               <p className="text-[11px] text-abtg-muted mt-3 leading-relaxed border-t border-abtg-border pt-2.5">
-                <strong className="text-abtg-navy font-semibold">Cos&apos;è il Risk-Free Rate?</strong> È il rendimento di un investimento privo di rischio — tipicamente il <strong>T-Bill USA a 3 mesi</strong>. Serve al modello Black-Scholes per scontare al presente il valore futuro delle opzioni. Valore attuale indicativo: <strong>4–5%</strong> (aggiornato ai tassi Fed). Impatta marginalmente sulle opzioni a breve, più sensibile su scadenze oltre 6 mesi (vedi Rho).
+                <strong className="text-abtg-navy font-semibold">Cos&apos;è il Risk-Free Rate?</strong> Rendimento di un investimento privo di rischio — tipicamente il <strong>T-Bill USA a 3 mesi</strong>. Serve al modello Black-Scholes per scontare al presente il valore futuro delle opzioni. Valore attuale: <strong>4–5%</strong> (allineato ai tassi Fed). Impatta marginalmente su opzioni a breve, più rilevante su scadenze oltre 6 mesi (vedi Rho).
               </p>
             </Card>
 
@@ -886,6 +890,29 @@ function MetricCompact({
       <span className="text-[10px] uppercase tracking-widest text-abtg-muted font-semibold truncate">{label}</span>
       <span className={`text-lg font-bold leading-tight truncate ${toneClass}`}>{value}</span>
       {hint && <span className="text-[10px] text-abtg-muted leading-tight">{hint}</span>}
+    </div>
+  );
+}
+
+/** Read-only parameter tile — for values locked by the model (IV, Risk-Free). */
+function ReadOnlyField({
+  label, value, hint, full = false,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  full?: boolean;
+}) {
+  return (
+    <div className={full ? "col-span-2" : ""}>
+      <label className="abtg-label">{label}</label>
+      <div
+        className="bg-abtg-bg border border-abtg-border rounded-lg px-3 py-2 flex items-baseline justify-between gap-2 cursor-not-allowed select-none"
+        title={hint ? `${hint} — non modificabile` : "Non modificabile"}
+      >
+        <span className="font-mono font-semibold text-abtg-text text-sm">{value}</span>
+        {hint && <span className="text-[10px] text-abtg-muted uppercase tracking-wide font-medium">{hint}</span>}
+      </div>
     </div>
   );
 }
