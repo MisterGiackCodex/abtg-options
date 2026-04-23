@@ -422,12 +422,14 @@ export default function DashboardPage() {
 
           {/* Shared market params — same row as single/multi */}
           <Card title="Parametri di Mercato" padding="p-4">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               <NumberField label="Spot" value={S} onChange={setS} step={0.5} />
-              <NumberField label="Volatilità Impl." value={sigma * 100} onChange={(v) => setSigma(v / 100)} step={1} suffix="%" />
               <NumberField label="Giorni a Scad." value={days} onChange={setDays} step={1} min={0} />
               <NumberField label="Risk-Free Rate" value={r * 100} onChange={(v) => setR(v / 100)} step={0.25} suffix="%" />
             </div>
+            <p className="text-[11px] text-abtg-muted mt-3 leading-relaxed border-t border-abtg-border pt-2.5">
+              <strong className="text-abtg-navy font-semibold">Cos&apos;è il Risk-Free Rate?</strong> Rendimento di un investimento privo di rischio (T-Bill USA 3 mesi). Serve al modello Black-Scholes per scontare il valore futuro delle opzioni. Valore attuale ~4–5%.
+            </p>
           </Card>
 
           {/* Slot cards */}
@@ -600,13 +602,13 @@ export default function DashboardPage() {
             <Card title="Parametri di Mercato" padding="p-4">
               <div className="grid grid-cols-2 gap-2.5">
                 <NumberField label="Spot" value={S} onChange={setS} step={0.5} />
-                <NumberField label="Volatilità Impl." value={sigma * 100} onChange={(v) => setSigma(v / 100)} step={1} suffix="%" />
                 <NumberField label="Giorni a Scad." value={days} onChange={setDays} step={1} min={0} />
                 <NumberField label="Risk-Free Rate" value={r * 100} onChange={(v) => setR(v / 100)} step={0.25} suffix="%" />
-                <div className="col-span-2">
-                  <NumberField label="Contratti" value={qty} onChange={setQty} step={1} min={1} />
-                </div>
+                <NumberField label="Contratti" value={qty} onChange={setQty} step={1} min={1} />
               </div>
+              <p className="text-[11px] text-abtg-muted mt-3 leading-relaxed border-t border-abtg-border pt-2.5">
+                <strong className="text-abtg-navy font-semibold">Cos&apos;è il Risk-Free Rate?</strong> È il rendimento di un investimento privo di rischio — tipicamente il <strong>T-Bill USA a 3 mesi</strong>. Serve al modello Black-Scholes per scontare al presente il valore futuro delle opzioni. Valore attuale indicativo: <strong>4–5%</strong> (aggiornato ai tassi Fed). Impatta marginalmente sulle opzioni a breve, più sensibile su scadenze oltre 6 mesi (vedi Rho).
+              </p>
             </Card>
 
             {/* Strategy preset */}

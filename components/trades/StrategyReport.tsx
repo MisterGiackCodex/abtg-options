@@ -64,9 +64,8 @@ export const StrategyReport = forwardRef<HTMLDivElement, { data: ReportData }>(
         </div>
 
         {/* Params row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
           <ReportTile label="Spot" value={`$${data.params.S.toFixed(2)}`} />
-          <ReportTile label="IV" value={`${(data.params.sigma * 100).toFixed(1)}%`} />
           <ReportTile label="DTE" value={`${data.params.days} giorni`} />
           <ReportTile label="Risk-Free" value={`${(data.params.r * 100).toFixed(2)}%`} />
           <ReportTile label="Contratti" value={`${data.params.qty}`} />
