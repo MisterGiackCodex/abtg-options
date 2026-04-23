@@ -157,9 +157,12 @@ export function computePayoffRange(
   const slope = slopeAtInfinity(legs);
   const hasStock = legs.some((l) => l.kind === "stock");
   const fullRange = hasStock || slope >= -1e-9;
-  const sigma1 = ctx.sigma * Math.sqrt(Math.max(ctx.T, 1 / 365)) * ctx.S;
-  const yLo = fullRange ? minS : Math.max(minS, ctx.S - sigma1);
-  const yHi = fullRange ? maxS : Math.min(maxS, ctx.S + sigma1);
+  // Clip window for unbounded-loss strategies (naked short call, short straddle):
+  // ±2σ around spot keeps the center peak readable without squashing tail losses
+  // too aggressively — a 30% IV, 30-day move of ~17 points either side of spot.
+  const sigmaMoveClip = ctx.sigma * Math.sqrt(Math.max(ctx.T, 1 / 365)) * ctx.S * 2;
+  const yLo = fullRange ? minS : Math.max(minS, ctx.S - sigmaMoveClip);
+  const yHi = fullRange ? maxS : Math.min(maxS, ctx.S + sigmaMoveClip);
   const dS = (maxS - minS) / steps;
   let lo = Infinity, hi = -Infinity;
   for (let i = 0; i <= steps; i++) {
