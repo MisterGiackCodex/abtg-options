@@ -74,7 +74,7 @@ export function CompareChart({
             stroke="#64748B"
             fontSize={11}
             domain={yDomain ?? ["auto", "auto"]}
-            allowDataOverflow={!!yDomain}
+            allowDataOverflow={false}
             width={60}
             tickCount={6}
           />
