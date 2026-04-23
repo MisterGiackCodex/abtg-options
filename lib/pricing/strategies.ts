@@ -148,11 +148,17 @@ export function computePayoffRange(
   const minS = Math.max(0.01, mid - halfWidth);
   const maxS = mid + halfWidth;
 
-  // Size Y on the "likely" zone: payoff within ±1 sigma around spot (TV-style zoom).
-  // Keeps small plateau profits (e.g. $86 short call) visible even when tail loss is huge.
+  // Y-sampling window. For strategies with unbounded tails (naked short calls, etc.)
+  // we clip to ±1σ around spot so the "likely" zone stays readable. For fully bounded
+  // strategies — and for any strategy holding stock (covered call, collars, etc.) —
+  // we sample Y across the entire visible X range so the full payoff profile, including
+  // linear stock-driven losses, is captured instead of clipped.
+  const slope = slopeAtInfinity(legs);
+  const hasStock = legs.some((l) => l.kind === "stock");
+  const fullRange = hasStock || Math.abs(slope) < 1e-9;
   const sigma1 = ctx.sigma * Math.sqrt(Math.max(ctx.T, 1 / 365)) * ctx.S;
-  const yLo = Math.max(minS, ctx.S - sigma1);
-  const yHi = Math.min(maxS, ctx.S + sigma1);
+  const yLo = fullRange ? minS : Math.max(minS, ctx.S - sigma1);
+  const yHi = fullRange ? maxS : Math.min(maxS, ctx.S + sigma1);
   const dS = (maxS - minS) / steps;
   let lo = Infinity, hi = -Infinity;
   for (let i = 0; i <= steps; i++) {
@@ -222,8 +228,28 @@ export function computeReportPayoffRange(
   return { minS, maxS, yMin: lo - padAmt, yMax: hi + padAmt };
 }
 
-// Max profit/loss on expiration across range. Infinity possible for naked short/long calls.
+// Analytical slope of total payoff as S→+∞ (per-dollar move).
+// - stock long contributes +qty*100, stock short -qty*100
+// - long call contributes +qty*100, short call -qty*100 (puts vanish)
+// Underlying price is floored at 0, so the only direction that can be unbounded
+// is as S→∞. At S=0 every leg has a finite payoff, therefore max loss is
+// always finite unless the slope at infinity is negative (short-call-heavy).
+function slopeAtInfinity(legs: Leg[]): number {
+  let s = 0;
+  for (const l of legs) {
+    const sign = l.side === "long" ? 1 : -1;
+    if (l.kind === "stock" || l.kind === "call") s += sign * l.quantity * 100;
+  }
+  return s;
+}
+
+// Max profit/loss on expiration. Unbounded detection is analytical, not heuristic.
 export function maxProfitLoss(legs: Leg[], minS: number, maxS: number, steps = 500): { maxProfit: number; maxLoss: number; unboundedUp: boolean; unboundedDown: boolean; } {
+  const slope = slopeAtInfinity(legs);
+  const unboundedUp = slope > 1e-9;
+  const unboundedDown = slope < -1e-9;
+
+  // Sample the visible range for extrema
   let maxProfit = -Infinity, maxLoss = Infinity;
   const dS = (maxS - minS) / steps;
   for (let i = 0; i <= steps; i++) {
@@ -232,15 +258,16 @@ export function maxProfitLoss(legs: Leg[], minS: number, maxS: number, steps = 5
     if (v > maxProfit) maxProfit = v;
     if (v < maxLoss) maxLoss = v;
   }
-  // Detect unbounded by comparing payoff at far-out points vs reference.
-  // Replaces the fragile slope-based heuristic that mis-classified covered calls.
-  const farLow  = Math.max(0.01, minS * 0.05);
-  const farHigh = maxS * 4;
-  const payFarLow  = strategyPayoff(legs, farLow);
-  const payFarHigh = strategyPayoff(legs, farHigh);
-  const refLow  = strategyPayoff(legs, minS);
-  const refHigh = strategyPayoff(legs, maxS);
-  const unboundedUp   = payFarHigh - refHigh >  Math.abs(refHigh) * 0.5 + 50;
-  const unboundedDown = payFarLow  - refLow  < -(Math.abs(refLow)  * 0.5 + 50);
+  // Always evaluate the S=0 boundary (finite, often worst case for short puts / long stock)
+  const payAtZero = strategyPayoff(legs, 0);
+  if (payAtZero > maxProfit) maxProfit = payAtZero;
+  if (payAtZero < maxLoss) maxLoss = payAtZero;
+
+  // For bounded strategies also evaluate a far-high point so the plateau shows up
+  if (!unboundedUp) {
+    const payFarHigh = strategyPayoff(legs, maxS * 10);
+    if (payFarHigh > maxProfit) maxProfit = payFarHigh;
+    if (payFarHigh < maxLoss) maxLoss = payFarHigh;
+  }
   return { maxProfit, maxLoss, unboundedUp, unboundedDown };
 }
