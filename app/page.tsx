@@ -30,7 +30,7 @@ import type { LNParams } from "@/lib/probability/lognormal";
 import {
   buyCall, sellCall, buyPut, sellPut, coveredCall,
   bullCallSpread, bearPutSpread, bullPutSpread, bearCallSpread,
-  longStraddle, shortStraddle, longStrangle, ironCondor, callButterfly,
+  longStraddle, shortStraddle, longStrangle, ironCondor, butterfly,
   PRESETS, type PresetId,
 } from "@/lib/presets/multileg";
 
@@ -87,9 +87,9 @@ function buildLegsFromSlot(slot: SlotState, ctx: { S: number; T: number; r: numb
     case "bearCallSpread": return bearCallSpread(slot.k1, slot.k2, ctx, slot.qty);
     case "longStraddle":   return longStraddle(slot.k1, ctx, slot.qty);
     case "shortStraddle":  return shortStraddle(slot.k1, ctx, slot.qty);
-    case "longStrangle":   return longStrangle(slot.k4, slot.k1, ctx, slot.qty);
-    case "ironCondor":     return ironCondor(slot.k4 - 10, slot.k4, slot.k2, slot.k2 + 10, ctx, slot.qty);
-    case "callButterfly":  return callButterfly(slot.k1, slot.k2, slot.k3, ctx, slot.qty);
+    case "longStrangle":   return longStrangle(slot.k1, slot.k2, ctx, slot.qty);
+    case "ironCondor":     return ironCondor(slot.k1, slot.k2, slot.k3, slot.k4, ctx, slot.qty);
+    case "butterfly":      return butterfly(slot.k1, slot.k2, slot.k3, ctx, slot.qty);
   }
 }
 
@@ -132,7 +132,19 @@ export default function DashboardPage() {
 
   // Convenience setters that operate on the active tab's state
   const setPreset = (id: PresetId) =>
-    setActiveTabState((prev) => ({ ...prev, preset: id, customLegs: [] }));
+    setActiveTabState((prev) => {
+      const meta = PRESETS.find((p) => p.id === id);
+      const d = meta?.defaultK ?? {};
+      return {
+        ...prev,
+        preset: id,
+        customLegs: [],
+        k1: d.k1 ?? prev.k1,
+        k2: d.k2 ?? prev.k2,
+        k3: d.k3 ?? prev.k3,
+        k4: d.k4 ?? prev.k4,
+      };
+    });
   const setK1 = (v: number) => setActiveTabState((prev) => ({ ...prev, k1: v }));
   const setK2 = (v: number) => setActiveTabState((prev) => ({ ...prev, k2: v }));
   const setK3 = (v: number) => setActiveTabState((prev) => ({ ...prev, k3: v }));
@@ -359,21 +371,16 @@ export default function DashboardPage() {
   function SlotStrikeInputs({ slot }: { readonly slot: SlotState }) {
     const meta = PRESETS.find((p) => p.id === slot.preset);
     if (!meta || meta.strikes.length === 0) return null;
-    const map: Record<string, [number, (v: number) => void]> = {
-      K: [slot.k1, (v) => updateSlot(slot.id, { k1: v })],
-      K1: [slot.k1, (v) => updateSlot(slot.id, { k1: v })],
-      Kp1: [slot.k1, (v) => updateSlot(slot.id, { k1: v })],
-      K2: [slot.k2, (v) => updateSlot(slot.id, { k2: v })],
-      Kc1: [slot.k2, (v) => updateSlot(slot.id, { k2: v })],
-      K3: [slot.k3, (v) => updateSlot(slot.id, { k3: v })],
-      Kp: [slot.k4, (v) => updateSlot(slot.id, { k4: v })],
-      Kp2: [slot.k4, (v) => updateSlot(slot.id, { k4: v })],
-      Kc2: [slot.k2, (v) => updateSlot(slot.id, { k2: v })],
-    };
+    const slots: [number, (v: number) => void][] = [
+      [slot.k1, (v) => updateSlot(slot.id, { k1: v })],
+      [slot.k2, (v) => updateSlot(slot.id, { k2: v })],
+      [slot.k3, (v) => updateSlot(slot.id, { k3: v })],
+      [slot.k4, (v) => updateSlot(slot.id, { k4: v })],
+    ];
     return (
       <div className="grid grid-cols-2 gap-2 mt-2">
-        {meta.strikes.map((name) => {
-          const entry = map[name];
+        {meta.strikes.map((name, idx) => {
+          const entry = slots[idx];
           if (!entry) return null;
           const [val, setter] = entry;
           return (
@@ -469,9 +476,18 @@ export default function DashboardPage() {
                   className="abtg-input text-sm w-full"
                   value={slot.preset}
                   aria-label={`Preset per la strategia ${slot.label}`}
-                  onChange={(e) =>
-                    updateSlot(slot.id, { preset: e.target.value as PresetId })
-                  }
+                  onChange={(e) => {
+                    const id = e.target.value as PresetId;
+                    const meta = PRESETS.find((p) => p.id === id);
+                    const d = meta?.defaultK ?? {};
+                    updateSlot(slot.id, {
+                      preset: id,
+                      k1: d.k1 ?? slot.k1,
+                      k2: d.k2 ?? slot.k2,
+                      k3: d.k3 ?? slot.k3,
+                      k4: d.k4 ?? slot.k4,
+                    });
+                  }}
                 >
                   {PRESETS.map((p) => (
                     <option key={p.id} value={p.id}>{p.label}</option>
@@ -669,14 +685,14 @@ export default function DashboardPage() {
 
               {activePreset && activePreset.strikes.length > 0 && (
                 <div className="grid grid-cols-2 gap-2.5">
-                  {activePreset.strikes.map((name) => {
-                    const map: Record<string, [number, (v: number) => void]> = {
-                      K: [k1, setK1], K1: [k1, setK1], Kp1: [k1, setK1],
-                      K2: [k2, setK2], Kc1: [k2, setK2],
-                      K3: [k3, setK3],
-                      Kp: [k4, setK4], Kp2: [k4, setK4], Kc2: [k2, setK2],
-                    };
-                    const entry = map[name];
+                  {activePreset.strikes.map((name, idx) => {
+                    // For multi-strike presets, positional mapping by order:
+                    // strikes[0] -> k1, [1] -> k2, [2] -> k3, [3] -> k4.
+                    // Applies uniformly to K/K1/K2/K3, Kp/Kc (strangle), Kp2/Kp1/Kc1/Kc2 (iron condor).
+                    const slot: [number, (v: number) => void][] = [
+                      [k1, setK1], [k2, setK2], [k3, setK3], [k4, setK4],
+                    ];
+                    const entry = slot[idx];
                     if (!entry) return null;
                     const [val, setter] = entry;
                     return <NumberField key={name} label={`Strike ${name}`} value={val} onChange={setter} step={0.5} />;

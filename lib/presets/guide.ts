@@ -114,7 +114,7 @@ export const STRATEGY_GUIDE: Record<PresetId, StrategyGuide> = {
     breakeven: "Kp1 − credito (giù) e Kc1 + credito (su).",
     tip: "Strategia 'income' preferita dai trader avanzati in mercati laterali. Theta positivo, richiede monitoraggio delle ali.",
   },
-  callButterfly: {
+  butterfly: {
     when: "Ti aspetti che il prezzo chiuda esattamente a un livello preciso (K2).",
     how: "Long call K1 + 2 short call K2 + long call K3 (K1<K2<K3, equidistanti). Debito netto basso.",
     profit: "Massimo a K2 esatto: (K2 − K1) × 100 − debito.",
