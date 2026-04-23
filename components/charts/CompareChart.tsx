@@ -57,7 +57,7 @@ export function CompareChart({
   return (
     <div className="h-[280px] sm:h-[340px] lg:h-[420px] w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData} margin={{ top: 16, right: 24, bottom: 8, left: 8 }}>
+        <LineChart data={chartData} margin={{ top: 28, right: 24, bottom: 8, left: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
           <XAxis
             dataKey="S"

@@ -33,7 +33,7 @@ export function PayoffChart({
   return (
     <div className="h-[280px] sm:h-[340px] lg:h-[400px] w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={chartData} margin={{ top: 16, right: 24, bottom: 8, left: 8 }}>
+        <ComposedChart data={chartData} margin={{ top: 28, right: 24, bottom: 8, left: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
           <XAxis
             dataKey="S"
@@ -62,8 +62,19 @@ export function PayoffChart({
           />
           <ReferenceLine y={0} stroke="#94A3B8" />
           {(() => {
-            // Collapse spot label when it coincides with a strike to avoid overlap
-            const spotOnStrike = spot !== undefined && strikes.some((k) => Math.abs(k - spot) < 0.5);
+            // Sort strikes asc, stagger labels vertically when they are close together
+            const xRange = xMax - xMin || 1;
+            const sortedStrikes = [...strikes].sort((a, b) => a - b);
+            const positions: ("top" | "insideTop" | "insideBottomLeft")[] = [];
+            sortedStrikes.forEach((k, i) => {
+              const prev = sortedStrikes[i - 1];
+              const tooClose = prev !== undefined && (k - prev) / xRange < 0.08;
+              // Cycle top → insideTop → insideBottomLeft only when clustered
+              positions[i] = tooClose
+                ? (positions[i - 1] === "top" ? "insideTop" : positions[i - 1] === "insideTop" ? "insideBottomLeft" : "top")
+                : "top";
+            });
+            const spotOnStrike = spot !== undefined && sortedStrikes.some((k) => Math.abs(k - spot) < xRange * 0.015);
             return (
               <>
                 {spot !== undefined && (
@@ -74,8 +85,9 @@ export function PayoffChart({
                     label={spotOnStrike ? undefined : { value: `Spot $${spot.toFixed(0)}`, fill: "#EF7B10", fontSize: 10, position: "top" }}
                   />
                 )}
-                {strikes.map((k, i) => {
-                  const mergedWithSpot = spot !== undefined && Math.abs(k - spot) < 0.5;
+                {sortedStrikes.map((k, i) => {
+                  const mergedWithSpot = spot !== undefined && Math.abs(k - spot) < xRange * 0.015;
+                  const labelName = strikes.length > 1 ? `K${i + 1}` : "K";
                   return (
                     <ReferenceLine
                       key={`k${i}`}
@@ -83,10 +95,10 @@ export function PayoffChart({
                       stroke="#94A3B8"
                       strokeDasharray="2 4"
                       label={{
-                        value: mergedWithSpot ? `Spot/K $${k.toFixed(0)}` : `K $${k.toFixed(0)}`,
+                        value: mergedWithSpot ? `Spot/${labelName} $${k.toFixed(0)}` : `${labelName} $${k.toFixed(0)}`,
                         fill: mergedWithSpot ? "#EF7B10" : "#64748B",
-                        fontSize: 10,
-                        position: "top",
+                        fontSize: 9,
+                        position: positions[i],
                       }}
                     />
                   );
@@ -100,7 +112,12 @@ export function PayoffChart({
               x={be}
               stroke="#16A34A"
               strokeDasharray="3 3"
-              label={{ value: `B/E $${be.toFixed(2)}`, fill: "#16A34A", fontSize: 10, position: "insideBottomRight" }}
+              label={{
+                value: `B/E $${be.toFixed(2)}`,
+                fill: "#16A34A",
+                fontSize: 9,
+                position: i % 2 === 0 ? "insideBottomRight" : "insideBottomLeft",
+              }}
             />
           ))}
           <Area type="monotone" dataKey="profit" stroke="none" fill="#16A34A" fillOpacity={0.15} />

@@ -23,7 +23,7 @@ export function POPDistribution({ legs, ln, minS, maxS }: { legs: Leg[]; ln: LNP
   return (
     <div className="h-[240px] sm:h-[300px] lg:h-[340px] w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={points} margin={{ top: 12, right: 24, bottom: 8, left: 8 }}>
+        <ComposedChart data={points} margin={{ top: 24, right: 24, bottom: 8, left: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
           <XAxis
             dataKey="S"
