@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import { StrategyReport, type ReportData } from "@/components/trades/StrategyReport";
 import { STRATEGY_GUIDE } from "@/lib/presets/guide";
@@ -217,6 +217,12 @@ export default function DashboardPage() {
   const reportRef = useRef<HTMLDivElement>(null);
   const [reportTitle, setReportTitle] = useState("");
   const [exporting, setExporting] = useState(false);
+  // generatedAt must be stable between SSR and first client render.
+  // An empty string on the server; set client-side in useEffect to avoid hydration mismatch.
+  const [generatedAt, setGeneratedAt] = useState("");
+  useEffect(() => {
+    setGeneratedAt(new Date().toLocaleString("it-IT"));
+  }, []);
 
   // Report uses wider viewport (no ±1σ clip) so covered call plateau and
   // multi-leg wings stay visible in the printed output
@@ -256,8 +262,8 @@ export default function DashboardPage() {
     payoffData: reportPayoffData,
     strikes,
     yDomain: [reportRange.yMin, reportRange.yMax],
-    generatedAt: new Date().toLocaleString("it-IT"),
-  }), [reportTitle, activePreset, preset, tickerSymbol, S, sigma, days, r, qty, nd, mp, reportBes, pop, ev, legs.length, greeks, reportPayoffData, strikes, reportRange]);
+    generatedAt,
+  }), [reportTitle, activePreset, preset, tickerSymbol, S, sigma, days, r, qty, nd, mp, reportBes, pop, ev, legs.length, greeks, reportPayoffData, strikes, reportRange, generatedAt]);
 
 
   const exportReport = useCallback(async () => {

@@ -26,11 +26,15 @@ const statusLabel: Record<FeedStatus, string> = {
 };
 
 function QuoteAge({ ts }: { ts: number }) {
-  const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
+  // Initialize to null so SSR and first client render emit identical markup.
+  // The real value is set in useEffect (client-only), avoiding a hydration mismatch.
+  const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
+    setNow(Math.floor(Date.now() / 1000));
     const id = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
     return () => clearInterval(id);
   }, []);
+  if (now === null) return null;
   const age = Math.max(0, now - ts);
   const label = age < 60 ? `${age}s fa` : age < 3600 ? `${Math.floor(age / 60)}m fa` : `${Math.floor(age / 3600)}h fa`;
   const color = age < 60 ? "text-abtg-profit" : age < 900 ? "text-yellow-500" : "text-abtg-loss";
@@ -149,10 +153,12 @@ export function TickerBar({ quote, status, error, onConnect, onDisconnect }: Tic
         })}
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className={`w-2 h-2 rounded-full ${statusDot[status]}`} />
-        <span className="text-xs text-abtg-muted font-medium">{statusLabel[status]}</span>
-      </div>
+      {status !== "idle" && (
+        <div className="flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full ${statusDot[status]}`} />
+          <span className="text-xs text-abtg-muted font-medium">{statusLabel[status]}</span>
+        </div>
+      )}
 
       {quote && (
         <div className="flex items-center gap-3 ml-auto">
