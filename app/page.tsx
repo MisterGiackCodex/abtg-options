@@ -118,13 +118,6 @@ export default function DashboardPage() {
   const handleConnect = useCallback((sym: string) => setTickerSymbol(sym), []);
   const handleDisconnect = useCallback(() => setTickerSymbol(null), []);
 
-  // Auto-populate spot from ticker
-  if (quote && quote.price > 0 && tickerSymbol) {
-    if (Math.abs(quote.price - S) > 0.005) {
-      setTimeout(() => setS(quote.price), 0);
-    }
-  }
-
   // Save trade modal
 
   const T = days / 365;
@@ -166,6 +159,25 @@ export default function DashboardPage() {
 
   const removeSlot = (id: string) =>
     setSlots((prev) => (prev.length > 2 ? prev.filter((s) => s.id !== id) : prev));
+
+  // Auto-populate spot from ticker + realign strikes to new spot
+  // (prevents deep-ITM/OTM garbage when switching ticker, e.g. AAPL $272 with K=100)
+  if (quote && quote.price > 0 && tickerSymbol) {
+    if (Math.abs(quote.price - S) > 0.005) {
+      setTimeout(() => {
+        const p = quote.price;
+        const k = Math.round(p);
+        setS(p);
+        const realign = <T extends { k1: number; k2: number; k3: number; k4: number }>(prev: T): T =>
+          Math.abs(prev.k1 - p) / p > 0.3
+            ? { ...prev, k1: k, k2: k + 10, k3: k + 20, k4: k - 10 }
+            : prev;
+        setSingleState(realign);
+        setMultiState(realign);
+        setSlots((prev) => prev.map(realign));
+      }, 0);
+    }
+  }
 
   // ── Derived values for Singola / Multi-Leg tabs ───────────────────────────
   const { preset, k1, k2, k3, k4, qty, customLegs } = activeTabState;
@@ -237,7 +249,7 @@ export default function DashboardPage() {
       breakEvens: reportBes,
       pop,
       ev,
-      riskReward: mp.unboundedUp || mp.unboundedDown || mp.maxLoss === 0 ? "—" : `${Math.abs(mp.maxProfit / mp.maxLoss).toFixed(2)}x`,
+      riskReward: mp.unboundedUp || mp.unboundedDown || mp.maxLoss === 0 ? "—" : fmtRR(mp.maxProfit / mp.maxLoss),
       legsCount: legs.length,
     },
     greeks,
@@ -762,7 +774,7 @@ export default function DashboardPage() {
                   value={
                     mp.unboundedUp || mp.unboundedDown || mp.maxLoss === 0
                       ? "—"
-                      : `${Math.abs(mp.maxProfit / mp.maxLoss).toFixed(2)}x`
+                      : fmtRR(mp.maxProfit / mp.maxLoss)
                   }
                 />
                 <MetricCompact
@@ -874,4 +886,13 @@ function MetricCompact({
       {hint && <span className="text-[10px] text-abtg-muted leading-tight">{hint}</span>}
     </div>
   );
+}
+
+/** Risk/Reward formatter: 3 decimals if < 0.01, else 2. */
+function fmtRR(ratio: number): string {
+  const v = Math.abs(ratio);
+  if (!isFinite(v) || v === 0) return "—";
+  if (v < 0.01) return `${v.toFixed(4)}x`;
+  if (v < 0.1) return `${v.toFixed(3)}x`;
+  return `${v.toFixed(2)}x`;
 }
