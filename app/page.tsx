@@ -800,17 +800,18 @@ export default function DashboardPage() {
             {/* Payoff chart */}
             <Card title="Diagramma Payoff" padding="p-4">
               <PayoffChart data={payoffData} breakEvens={bes} strikes={strikes} spot={S} yDomain={[yMin, yMax]} />
-              <div className="flex gap-6 text-xs text-abtg-muted mt-3 justify-center">
-                <span>
-                  <span className="inline-block w-3 h-0.5 bg-abtg-gold mr-1.5 align-middle" />
+              <div className="flex gap-6 text-xs text-abtg-muted mt-3 justify-center flex-wrap">
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-3 h-[2.5px]" style={{ background: "#EF7B10" }} />
                   A scadenza
                 </span>
-                <span>
-                  <span
-                    className="inline-block w-3 h-0.5 bg-abtg-navyLight mr-1.5 align-middle"
-                    style={{ borderStyle: "dashed" }}
-                  />
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-3 h-[1.5px]" style={{ background: "#64748B" }} />
                   Oggi (mark-to-market)
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-3 h-[2px]" style={{ background: "#16A34A" }} />
+                  Break-even
                 </span>
               </div>
               <p className="text-xs text-abtg-muted mt-3 leading-relaxed border-t border-abtg-border pt-3">

@@ -101,7 +101,7 @@ export function CompareChart({
               x={spot}
               stroke="#EF7B10"
               strokeDasharray="4 4"
-              label={{ value: "Spot", fill: "#EF7B10", fontSize: 10, position: "top" }}
+              label={{ value: `Spot $${spot.toFixed(0)}`, fill: "#EF7B10", fontSize: 10, position: "top" }}
             />
           )}
           {series.map((s) => (

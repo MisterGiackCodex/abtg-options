@@ -61,23 +61,39 @@ export function PayoffChart({
             formatter={(v: number, name: string) => [`$${v.toFixed(2)}`, name === "expiry" ? "Scadenza" : name === "today" ? "Oggi" : name]}
           />
           <ReferenceLine y={0} stroke="#94A3B8" />
-          {spot !== undefined && (
-            <ReferenceLine
-              x={spot}
-              stroke="#EF7B10"
-              strokeDasharray="4 4"
-              label={{ value: `Spot $${spot.toFixed(0)}`, fill: "#EF7B10", fontSize: 10, position: "top" }}
-            />
-          )}
-          {strikes.map((k, i) => (
-            <ReferenceLine
-              key={`k${i}`}
-              x={k}
-              stroke="#94A3B8"
-              strokeDasharray="2 4"
-              label={{ value: `K $${k.toFixed(0)}`, fill: "#64748B", fontSize: 10, position: "top" }}
-            />
-          ))}
+          {(() => {
+            // Collapse spot label when it coincides with a strike to avoid overlap
+            const spotOnStrike = spot !== undefined && strikes.some((k) => Math.abs(k - spot) < 0.5);
+            return (
+              <>
+                {spot !== undefined && (
+                  <ReferenceLine
+                    x={spot}
+                    stroke="#EF7B10"
+                    strokeDasharray="4 4"
+                    label={spotOnStrike ? undefined : { value: `Spot $${spot.toFixed(0)}`, fill: "#EF7B10", fontSize: 10, position: "top" }}
+                  />
+                )}
+                {strikes.map((k, i) => {
+                  const mergedWithSpot = spot !== undefined && Math.abs(k - spot) < 0.5;
+                  return (
+                    <ReferenceLine
+                      key={`k${i}`}
+                      x={k}
+                      stroke="#94A3B8"
+                      strokeDasharray="2 4"
+                      label={{
+                        value: mergedWithSpot ? `Spot/K $${k.toFixed(0)}` : `K $${k.toFixed(0)}`,
+                        fill: mergedWithSpot ? "#EF7B10" : "#64748B",
+                        fontSize: 10,
+                        position: "top",
+                      }}
+                    />
+                  );
+                })}
+              </>
+            );
+          })()}
           {breakEvens.map((be, i) => (
             <ReferenceLine
               key={`be${i}`}

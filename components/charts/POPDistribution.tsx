@@ -46,9 +46,14 @@ export function POPDistribution({ legs, ln, minS, maxS }: { legs: Leg[]; ln: LNP
               return [v, name];
             }}
           />
-          <ReferenceLine x={ln.S} stroke="#C9A84C" strokeDasharray="4 4" />
+          <ReferenceLine
+            x={ln.S}
+            stroke="#EF7B10"
+            strokeDasharray="4 4"
+            label={{ value: `Spot $${ln.S.toFixed(0)}`, fill: "#EF7B10", fontSize: 10, position: "top" }}
+          />
           <Area type="monotone" dataKey="profitZone" stroke="none" fill="#16A34A" fillOpacity={0.30} />
-          <Area type="monotone" dataKey="pdf" stroke="#1B2B5E" fill="#1B2B5E" fillOpacity={0.08} strokeWidth={1.5} isAnimationActive={false} />
+          <Area type="monotone" dataKey="pdf" stroke="#EF7B10" fill="#EF7B10" fillOpacity={0.08} strokeWidth={1.5} isAnimationActive={false} />
         </ComposedChart>
       </ResponsiveContainer>
     </div>
