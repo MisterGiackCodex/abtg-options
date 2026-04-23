@@ -81,8 +81,8 @@ export function longStrangle(Kp: number, Kc: number, ctx: PresetCtx, qty = 1): L
     { id: nid(), kind: "call", side: "long", strike: Kc, premium: premium("call", Kc, ctx), quantity: qty },
   ];
 }
-// Iron Condor: Kp2 < Kp1 < S < Kc1 < Kc2. Long wings protect short body.
-export function ironCondor(Kp2: number, Kp1: number, Kc1: number, Kc2: number, ctx: PresetCtx, qty = 1): Leg[] {
+// Short Iron Condor — credit. Kp2<Kp1<S<Kc1<Kc2. Long wings protect short body. Profit in range.
+export function shortIronCondor(Kp2: number, Kp1: number, Kc1: number, Kc2: number, ctx: PresetCtx, qty = 1): Leg[] {
   return [
     { id: nid(), kind: "put", side: "long", strike: Kp2, premium: premium("put", Kp2, ctx), quantity: qty },
     { id: nid(), kind: "put", side: "short", strike: Kp1, premium: premium("put", Kp1, ctx), quantity: qty },
@@ -90,21 +90,104 @@ export function ironCondor(Kp2: number, Kp1: number, Kc1: number, Kc2: number, c
     { id: nid(), kind: "call", side: "long", strike: Kc2, premium: premium("call", Kc2, ctx), quantity: qty },
   ];
 }
-// Butterfly (call-constructed; put-constructed is synthetically equivalent).
-// K1 < K2 < K3, K2 = body. Typically K2 = ATM and equidistant wings.
-export function butterfly(K1: number, K2: number, K3: number, ctx: PresetCtx, qty = 1): Leg[] {
+/** @deprecated use shortIronCondor */
+export const ironCondor = shortIronCondor;
+// Long Call Butterfly — debit, 1-2-1 ratio. K1<K2<K3 equidistant. Profit peaks at K2.
+export function longCallButterfly(K1: number, K2: number, K3: number, ctx: PresetCtx, qty = 1): Leg[] {
   return [
     { id: nid(), kind: "call", side: "long", strike: K1, premium: premium("call", K1, ctx), quantity: qty },
     { id: nid(), kind: "call", side: "short", strike: K2, premium: premium("call", K2, ctx), quantity: qty * 2 },
     { id: nid(), kind: "call", side: "long", strike: K3, premium: premium("call", K3, ctx), quantity: qty },
   ];
 }
+/** @deprecated use longCallButterfly */
+export const butterfly = longCallButterfly;
+
+// Short Call Butterfly — credit, reverse of long. Profit wings, loss peak at K2.
+export function shortCallButterfly(K1: number, K2: number, K3: number, ctx: PresetCtx, qty = 1): Leg[] {
+  return [
+    { id: nid(), kind: "call", side: "short", strike: K1, premium: premium("call", K1, ctx), quantity: qty },
+    { id: nid(), kind: "call", side: "long", strike: K2, premium: premium("call", K2, ctx), quantity: qty * 2 },
+    { id: nid(), kind: "call", side: "short", strike: K3, premium: premium("call", K3, ctx), quantity: qty },
+  ];
+}
+
+// Long Put Butterfly — debit. K1<K2<K3. Same P/L shape as long call butterfly (peak at K2).
+export function longPutButterfly(K1: number, K2: number, K3: number, ctx: PresetCtx, qty = 1): Leg[] {
+  return [
+    { id: nid(), kind: "put", side: "long", strike: K3, premium: premium("put", K3, ctx), quantity: qty },
+    { id: nid(), kind: "put", side: "short", strike: K2, premium: premium("put", K2, ctx), quantity: qty * 2 },
+    { id: nid(), kind: "put", side: "long", strike: K1, premium: premium("put", K1, ctx), quantity: qty },
+  ];
+}
+
+// Short Put Butterfly — credit. Reverse of long put butterfly.
+export function shortPutButterfly(K1: number, K2: number, K3: number, ctx: PresetCtx, qty = 1): Leg[] {
+  return [
+    { id: nid(), kind: "put", side: "short", strike: K3, premium: premium("put", K3, ctx), quantity: qty },
+    { id: nid(), kind: "put", side: "long", strike: K2, premium: premium("put", K2, ctx), quantity: qty * 2 },
+    { id: nid(), kind: "put", side: "short", strike: K1, premium: premium("put", K1, ctx), quantity: qty },
+  ];
+}
+
+// Long Iron Condor — debit/reverse. Kp2<Kp1<Kc1<Kc2. Profit at wings (big move), loss in body.
+export function longIronCondor(Kp2: number, Kp1: number, Kc1: number, Kc2: number, ctx: PresetCtx, qty = 1): Leg[] {
+  return [
+    { id: nid(), kind: "put", side: "short", strike: Kp2, premium: premium("put", Kp2, ctx), quantity: qty },
+    { id: nid(), kind: "put", side: "long", strike: Kp1, premium: premium("put", Kp1, ctx), quantity: qty },
+    { id: nid(), kind: "call", side: "long", strike: Kc1, premium: premium("call", Kc1, ctx), quantity: qty },
+    { id: nid(), kind: "call", side: "short", strike: Kc2, premium: premium("call", Kc2, ctx), quantity: qty },
+  ];
+}
+
+// Short Iron Butterfly — credit. K1<K2<K3. Short straddle at K2 + long wings K1/K3. Profit peak K2.
+export function shortIronButterfly(K1: number, K2: number, K3: number, ctx: PresetCtx, qty = 1): Leg[] {
+  return [
+    { id: nid(), kind: "put", side: "long", strike: K1, premium: premium("put", K1, ctx), quantity: qty },
+    { id: nid(), kind: "put", side: "short", strike: K2, premium: premium("put", K2, ctx), quantity: qty },
+    { id: nid(), kind: "call", side: "short", strike: K2, premium: premium("call", K2, ctx), quantity: qty },
+    { id: nid(), kind: "call", side: "long", strike: K3, premium: premium("call", K3, ctx), quantity: qty },
+  ];
+}
+
+// Long Iron Butterfly — debit/reverse. Long straddle at K2 + short wings. Profit at wings.
+export function longIronButterfly(K1: number, K2: number, K3: number, ctx: PresetCtx, qty = 1): Leg[] {
+  return [
+    { id: nid(), kind: "put", side: "short", strike: K1, premium: premium("put", K1, ctx), quantity: qty },
+    { id: nid(), kind: "put", side: "long", strike: K2, premium: premium("put", K2, ctx), quantity: qty },
+    { id: nid(), kind: "call", side: "long", strike: K2, premium: premium("call", K2, ctx), quantity: qty },
+    { id: nid(), kind: "call", side: "short", strike: K3, premium: premium("call", K3, ctx), quantity: qty },
+  ];
+}
+
+// Married Put — long 100 shares + long 1 put (protective). K < S typically.
+export function marriedPut(K: number, ctx: PresetCtx, qty = 1): Leg[] {
+  return [
+    { id: nid(), kind: "stock", side: "long", strike: 0, premium: ctx.S, quantity: qty },
+    { id: nid(), kind: "put", side: "long", strike: K, premium: premium("put", K, ctx), quantity: qty },
+  ];
+}
+
+// Protective Collar — long stock + long put (Kp<S) + short call (Kc>S). Caps both tails.
+export function protectiveCollar(Kp: number, Kc: number, ctx: PresetCtx, qty = 1): Leg[] {
+  return [
+    { id: nid(), kind: "stock", side: "long", strike: 0, premium: ctx.S, quantity: qty },
+    { id: nid(), kind: "put", side: "long", strike: Kp, premium: premium("put", Kp, ctx), quantity: qty },
+    { id: nid(), kind: "call", side: "short", strike: Kc, premium: premium("call", Kc, ctx), quantity: qty },
+  ];
+}
 
 // ============ METADATA ============
 export type PresetId =
   | "buyCall" | "sellCall" | "buyPut" | "sellPut" | "coveredCall"
+  | "marriedPut" | "protectiveCollar"
   | "bullCallSpread" | "bearPutSpread" | "bullPutSpread" | "bearCallSpread"
-  | "longStraddle" | "shortStraddle" | "longStrangle" | "ironCondor" | "butterfly";
+  | "longStraddle" | "shortStraddle" | "longStrangle"
+  | "longCallButterfly" | "shortCallButterfly" | "longPutButterfly" | "shortPutButterfly"
+  | "shortIronCondor" | "longIronCondor"
+  | "shortIronButterfly" | "longIronButterfly"
+  // Legacy aliases kept for backwards compat with old saved states.
+  | "ironCondor" | "butterfly";
 
 export type PresetGroup = "single" | "vertical" | "volatility" | "advanced";
 
@@ -127,6 +210,8 @@ export const PRESETS: PresetMeta[] = [
   { id: "buyPut",   label: "Buy Put",   category: "single", group: "single", bias: "bearish", description: "Long put: copertura o speculazione ribassista, rischio limitato al premio.", strikes: ["K"], defaultK: { k1: 100 } },
   { id: "sellPut",  label: "Sell Put",  category: "single", group: "single", bias: "bullish", description: "Short put: incassa premio, accetta di comprare al ribasso.", strikes: ["K"], defaultK: { k1: 100 } },
   { id: "coveredCall", label: "Covered Call", category: "single", group: "single", bias: "neutral", description: "Azioni + short call: genera reddito, cappa l'upside.", strikes: ["K"], defaultK: { k1: 100 } },
+  { id: "marriedPut", label: "Married Put", category: "multi", group: "single", bias: "bullish", description: "100 azioni + long put (Kp<S): upside illimitato, perdita bloccata sotto Kp.", strikes: ["Kp"], defaultK: { k1: 95 } },
+  { id: "protectiveCollar", label: "Protective Collar", category: "multi", group: "single", bias: "neutral", description: "Azioni + long put Kp + short call Kc (Kp<S<Kc): perdita e profitto cappati.", strikes: ["Kp", "Kc"], defaultK: { k1: 95, k2: 105 } },
 
   // Vertical spreads (2 legs, same option type)
   { id: "bullCallSpread", label: "Bull Call Spread (debit)",  category: "multi", group: "vertical", bias: "bullish", description: "Long call K1 + short call K2 (K1<K2): profitto e rischio limitati, pagamento netto.", strikes: ["K1", "K2"], defaultK: { k1: 100, k2: 110 } },
@@ -139,7 +224,17 @@ export const PRESETS: PresetMeta[] = [
   { id: "shortStraddle", label: "Short Straddle", category: "multi", group: "volatility", bias: "neutral", description: "Short call + short put stesso strike: incassa premio se il prezzo resta fermo.", strikes: ["K"], defaultK: { k1: 100 } },
   { id: "longStrangle",  label: "Long Strangle",  category: "multi", group: "volatility", bias: "neutral", description: "Long put OTM + long call OTM: più economico dello straddle, richiede movimento più ampio.", strikes: ["Kp", "Kc"], defaultK: { k1: 90, k2: 110 } },
 
-  // Advanced
-  { id: "ironCondor", label: "Iron Condor", category: "multi", group: "advanced", bias: "neutral", description: "Bull put spread + bear call spread: profitto se il prezzo resta nel range centrale.", strikes: ["Kp2", "Kp1", "Kc1", "Kc2"], defaultK: { k1: 80, k2: 90, k3: 110, k4: 120 } },
-  { id: "butterfly",  label: "Butterfly",   category: "multi", group: "advanced", bias: "neutral", description: "Long K1 + 2x short K2 + long K3 (K1<K2<K3 equidistanti): profitto massimo se il prezzo chiude su K2.", strikes: ["K1", "K2", "K3"], defaultK: { k1: 90, k2: 100, k3: 110 } },
+  // Butterfly (3 leg, 1-2-1)
+  { id: "longCallButterfly",  label: "Long Call Butterfly (debit)",   category: "multi", group: "advanced", bias: "neutral", description: "Long call K1 + 2x short call K2 + long call K3 (equidistanti): profitto massimo se prezzo chiude a K2.", strikes: ["K1", "K2", "K3"], defaultK: { k1: 90, k2: 100, k3: 110 } },
+  { id: "shortCallButterfly", label: "Short Call Butterfly (credit)", category: "multi", group: "advanced", bias: "neutral", description: "Short call K1 + 2x long call K2 + short call K3: profitto ai wings, perdita picco a K2.", strikes: ["K1", "K2", "K3"], defaultK: { k1: 90, k2: 100, k3: 110 } },
+  { id: "longPutButterfly",   label: "Long Put Butterfly (debit)",    category: "multi", group: "advanced", bias: "neutral", description: "Long put K3 + 2x short put K2 + long put K1: profilo identico al Long Call Butterfly, picco a K2.", strikes: ["K1", "K2", "K3"], defaultK: { k1: 90, k2: 100, k3: 110 } },
+  { id: "shortPutButterfly",  label: "Short Put Butterfly (credit)",  category: "multi", group: "advanced", bias: "neutral", description: "Short put K3 + 2x long put K2 + short put K1: profitto ai wings, perdita picco a K2.", strikes: ["K1", "K2", "K3"], defaultK: { k1: 90, k2: 100, k3: 110 } },
+
+  // Iron Condor / Butterfly (4 leg)
+  { id: "shortIronCondor", label: "Short Iron Condor (credit)", category: "multi", group: "advanced", bias: "neutral", description: "Bull put spread + bear call spread: profitto se il prezzo resta nel range centrale.", strikes: ["Kp2", "Kp1", "Kc1", "Kc2"], defaultK: { k1: 80, k2: 90, k3: 110, k4: 120 } },
+  { id: "longIronCondor",  label: "Long Iron Condor (debit)",   category: "multi", group: "advanced", bias: "neutral", description: "Reverse iron condor: debit spread, profitto ai wings (grande movimento), perdita nel body.", strikes: ["Kp2", "Kp1", "Kc1", "Kc2"], defaultK: { k1: 80, k2: 90, k3: 110, k4: 120 } },
+  { id: "shortIronButterfly", label: "Short Iron Butterfly (credit)", category: "multi", group: "advanced", bias: "neutral", description: "Short straddle K2 + long wings K1/K3: picco profitto a K2, rischio capped.", strikes: ["K1", "K2", "K3"], defaultK: { k1: 90, k2: 100, k3: 110 } },
+  { id: "longIronButterfly",  label: "Long Iron Butterfly (debit)",   category: "multi", group: "advanced", bias: "neutral", description: "Long straddle K2 + short wings: profitto ai wings, perdita cappata al debito.", strikes: ["K1", "K2", "K3"], defaultK: { k1: 90, k2: 100, k3: 110 } },
+
+  // Legacy aliases (not shown in dropdown; kept for existing saved states)
 ];

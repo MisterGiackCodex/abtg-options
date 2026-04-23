@@ -44,3 +44,69 @@ export function expectedValue(legs: Leg[], ln: LNParams): number {
   const hi = S * 5;
   return simpson((x) => strategyPayoff(legs, x) * lognormalPDF(x, ln), lo, hi, 800);
 }
+
+/**
+ * Probability that the strategy closes within `tolPct` of its maximum profit at expiry.
+ * For flat plateaus (iron condors, credit verticals) this collapses to P(ST in plateau).
+ * For spiky payoffs (butterflies) a tolerance window of ~15% of max spans a small S range
+ * around the peak strike, matching how trading platforms report "Prob Max Profit".
+ */
+export function probabilityOfMaxProfit(legs: Leg[], ln: LNParams, tolPct = 0.15): number {
+  const S = ln.S;
+  const lo = Math.max(0.01, S * 0.01);
+  const hi = S * 5;
+  const N = 4000;
+  const h = (hi - lo) / N;
+
+  let maxP = -Infinity;
+  for (let i = 0; i <= N; i++) {
+    const x = lo + i * h;
+    const v = strategyPayoff(legs, x);
+    if (v > maxP) maxP = v;
+  }
+  if (!isFinite(maxP) || maxP <= 0) return 0;
+  const threshold = maxP * (1 - tolPct);
+
+  let prob = 0;
+  for (let i = 0; i < N; i++) {
+    const a = lo + i * h;
+    const b = a + h;
+    const mid = (a + b) / 2;
+    if (strategyPayoff(legs, mid) >= threshold) {
+      prob += simpson((x) => lognormalPDF(x, ln), a, b, 4);
+    }
+  }
+  return Math.min(Math.max(prob, 0), 1);
+}
+
+/**
+ * Probability that the strategy closes within `tolPct` of its maximum loss at expiry.
+ * Mirror of probabilityOfMaxProfit.
+ */
+export function probabilityOfMaxLoss(legs: Leg[], ln: LNParams, tolPct = 0.15): number {
+  const S = ln.S;
+  const lo = Math.max(0.01, S * 0.01);
+  const hi = S * 5;
+  const N = 4000;
+  const h = (hi - lo) / N;
+
+  let minP = Infinity;
+  for (let i = 0; i <= N; i++) {
+    const x = lo + i * h;
+    const v = strategyPayoff(legs, x);
+    if (v < minP) minP = v;
+  }
+  if (!isFinite(minP) || minP >= 0) return 0;
+  const threshold = minP * (1 - tolPct); // minP is negative, so this is closer to 0
+
+  let prob = 0;
+  for (let i = 0; i < N; i++) {
+    const a = lo + i * h;
+    const b = a + h;
+    const mid = (a + b) / 2;
+    if (strategyPayoff(legs, mid) <= threshold) {
+      prob += simpson((x) => lognormalPDF(x, ln), a, b, 4);
+    }
+  }
+  return Math.min(Math.max(prob, 0), 1);
+}

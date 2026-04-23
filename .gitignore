@@ -9,3 +9,9 @@ dist
 # Playwright test artifacts
 .playwright-mcp/
 *.png
+
+# TS incremental build cache
+tsconfig.tsbuildinfo
+
+# Local reference assets (screenshots for design comparison)
+Screen barchart/

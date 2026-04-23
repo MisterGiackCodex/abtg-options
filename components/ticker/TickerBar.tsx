@@ -9,6 +9,10 @@ interface TickerBarProps {
   error: string | null;
   onConnect: (symbol: string) => void;
   onDisconnect: () => void;
+  /** Called when user wants to copy the live quote into the chart's working spot. */
+  onSyncSpot?: () => void;
+  /** Current chart spot — shown as "desynced" hint when it diverges from the live quote. */
+  chartSpot?: number;
 }
 
 const statusDot: Record<FeedStatus, string> = {
@@ -61,7 +65,7 @@ function saveRecent(list: string[]) {
   } catch {}
 }
 
-export function TickerBar({ quote, status, error, onConnect, onDisconnect }: TickerBarProps) {
+export function TickerBar({ quote, status, error, onConnect, onDisconnect, onSyncSpot, chartSpot }: TickerBarProps) {
   const [input, setInput] = useState("");
   const [recent, setRecent] = useState<string[]>([]);
   const [focused, setFocused] = useState(false);
@@ -160,28 +164,44 @@ export function TickerBar({ quote, status, error, onConnect, onDisconnect }: Tic
         </div>
       )}
 
-      {quote && (
-        <div className="flex items-center gap-3 ml-auto">
-          <span className="text-sm font-bold text-abtg-navy">{quote.symbol}</span>
-          <span className="text-lg font-mono text-abtg-text font-semibold">${quote.price.toFixed(2)}</span>
-          <span className={`text-sm font-mono font-medium ${quote.change >= 0 ? "text-abtg-profit" : "text-abtg-loss"}`}>
-            {quote.change >= 0 ? "+" : ""}
-            {quote.change.toFixed(2)} ({quote.changePercent >= 0 ? "+" : ""}
-            {quote.changePercent.toFixed(2)}%)
-          </span>
-          {connected && (
-            <button
-              type="button"
-              onClick={onDisconnect}
-              className="text-abtg-muted hover:text-abtg-loss text-sm px-1 transition"
-              title="Disconnetti"
-              aria-label="Disconnetti"
-            >
-              ✕
-            </button>
-          )}
-        </div>
-      )}
+      {quote && (() => {
+        const desynced =
+          onSyncSpot !== undefined &&
+          chartSpot !== undefined &&
+          Math.abs(chartSpot - quote.price) / Math.max(quote.price, 1) > 0.0015;
+        return (
+          <div className="flex items-center gap-3 ml-auto">
+            <span className="text-sm font-bold text-abtg-navy">{quote.symbol}</span>
+            <span className="text-lg font-mono text-abtg-text font-semibold">${quote.price.toFixed(2)}</span>
+            <span className={`text-sm font-mono font-medium ${quote.change >= 0 ? "text-abtg-profit" : "text-abtg-loss"}`}>
+              {quote.change >= 0 ? "+" : ""}
+              {quote.change.toFixed(2)} ({quote.changePercent >= 0 ? "+" : ""}
+              {quote.changePercent.toFixed(2)}%)
+            </span>
+            {desynced && (
+              <button
+                type="button"
+                onClick={onSyncSpot}
+                className="text-xs font-medium px-2.5 py-1 rounded-md border border-abtg-navy/40 text-abtg-navy bg-abtg-navy/5 hover:bg-abtg-navy/10 transition"
+                title={`Grafico a $${chartSpot?.toFixed(2)} — clicca per sincronizzare al prezzo live`}
+              >
+                Sincronizza prezzo
+              </button>
+            )}
+            {connected && (
+              <button
+                type="button"
+                onClick={onDisconnect}
+                className="text-abtg-muted hover:text-abtg-loss text-sm px-1 transition"
+                title="Disconnetti"
+                aria-label="Disconnetti"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        );
+      })()}
 
       {error && !quote && <span className="text-xs text-abtg-loss ml-auto font-medium">{error}</span>}
 

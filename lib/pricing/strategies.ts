@@ -248,30 +248,33 @@ function slopeAtInfinity(legs: Leg[]): number {
 }
 
 // Max profit/loss on expiration. Unbounded detection is analytical, not heuristic.
+// Payoff is piecewise-linear: every extremum lies on a strike, at S=0, or at ±∞.
+// We evaluate exactly at all strikes (peak/trough candidates) in addition to the
+// grid sample — fixes the butterfly-peak rounding where sampling missed K2 exactly.
 export function maxProfitLoss(legs: Leg[], minS: number, maxS: number, steps = 500): { maxProfit: number; maxLoss: number; unboundedUp: boolean; unboundedDown: boolean; } {
   const slope = slopeAtInfinity(legs);
   const unboundedUp = slope > 1e-9;
   const unboundedDown = slope < -1e-9;
 
-  // Sample the visible range for extrema
   let maxProfit = -Infinity, maxLoss = Infinity;
-  const dS = (maxS - minS) / steps;
-  for (let i = 0; i <= steps; i++) {
-    const S = minS + i * dS;
+  const evalAt = (S: number) => {
     const v = strategyPayoff(legs, S);
     if (v > maxProfit) maxProfit = v;
     if (v < maxLoss) maxLoss = v;
-  }
-  // Always evaluate the S=0 boundary (finite, often worst case for short puts / long stock)
-  const payAtZero = strategyPayoff(legs, 0);
-  if (payAtZero > maxProfit) maxProfit = payAtZero;
-  if (payAtZero < maxLoss) maxLoss = payAtZero;
+  };
 
-  // For bounded strategies also evaluate a far-high point so the plateau shows up
-  if (!unboundedUp) {
-    const payFarHigh = strategyPayoff(legs, maxS * 10);
-    if (payFarHigh > maxProfit) maxProfit = payFarHigh;
-    if (payFarHigh < maxLoss) maxLoss = payFarHigh;
-  }
+  // Grid sample (for visualization-consistent behavior)
+  const dS = (maxS - minS) / steps;
+  for (let i = 0; i <= steps; i++) evalAt(minS + i * dS);
+
+  // Exact strike points — where piecewise-linear payoff changes slope
+  for (const l of legs) if (l.kind !== "stock") evalAt(l.strike);
+
+  // S=0 boundary (worst case for long stock / short puts)
+  evalAt(0);
+
+  // Far-high for bounded-up strategies so the upside plateau shows up
+  if (!unboundedUp) evalAt(maxS * 10);
+
   return { maxProfit, maxLoss, unboundedUp, unboundedDown };
 }

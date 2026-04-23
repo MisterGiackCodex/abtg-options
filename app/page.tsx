@@ -25,12 +25,15 @@ import {
   strategyPayoff,
   type Leg,
 } from "@/lib/pricing/strategies";
-import { expectedValue, probabilityOfProfit } from "@/lib/probability/pop";
+import { expectedValue, probabilityOfProfit, probabilityOfMaxProfit, probabilityOfMaxLoss } from "@/lib/probability/pop";
 import type { LNParams } from "@/lib/probability/lognormal";
 import {
   buyCall, sellCall, buyPut, sellPut, coveredCall,
+  marriedPut, protectiveCollar,
   bullCallSpread, bearPutSpread, bullPutSpread, bearCallSpread,
-  longStraddle, shortStraddle, longStrangle, ironCondor, butterfly,
+  longStraddle, shortStraddle, longStrangle,
+  longCallButterfly, shortCallButterfly, longPutButterfly, shortPutButterfly,
+  shortIronCondor, longIronCondor, shortIronButterfly, longIronButterfly,
   PRESETS, type PresetId,
 } from "@/lib/presets/multileg";
 
@@ -81,6 +84,8 @@ function buildLegsFromSlot(slot: SlotState, ctx: { S: number; T: number; r: numb
     case "buyPut":         return buyPut(slot.k1, ctx, slot.qty);
     case "sellPut":        return sellPut(slot.k1, ctx, slot.qty);
     case "coveredCall":    return coveredCall(slot.k1, ctx, slot.qty);
+    case "marriedPut":     return marriedPut(slot.k1, ctx, slot.qty);
+    case "protectiveCollar": return protectiveCollar(slot.k1, slot.k2, ctx, slot.qty);
     case "bullCallSpread": return bullCallSpread(slot.k1, slot.k2, ctx, slot.qty);
     case "bearPutSpread":  return bearPutSpread(slot.k1, slot.k2, ctx, slot.qty);
     case "bullPutSpread":  return bullPutSpread(slot.k1, slot.k2, ctx, slot.qty);
@@ -88,8 +93,17 @@ function buildLegsFromSlot(slot: SlotState, ctx: { S: number; T: number; r: numb
     case "longStraddle":   return longStraddle(slot.k1, ctx, slot.qty);
     case "shortStraddle":  return shortStraddle(slot.k1, ctx, slot.qty);
     case "longStrangle":   return longStrangle(slot.k1, slot.k2, ctx, slot.qty);
-    case "ironCondor":     return ironCondor(slot.k1, slot.k2, slot.k3, slot.k4, ctx, slot.qty);
-    case "butterfly":      return butterfly(slot.k1, slot.k2, slot.k3, ctx, slot.qty);
+    case "longCallButterfly":  return longCallButterfly(slot.k1, slot.k2, slot.k3, ctx, slot.qty);
+    case "shortCallButterfly": return shortCallButterfly(slot.k1, slot.k2, slot.k3, ctx, slot.qty);
+    case "longPutButterfly":   return longPutButterfly(slot.k1, slot.k2, slot.k3, ctx, slot.qty);
+    case "shortPutButterfly":  return shortPutButterfly(slot.k1, slot.k2, slot.k3, ctx, slot.qty);
+    case "shortIronCondor":    return shortIronCondor(slot.k1, slot.k2, slot.k3, slot.k4, ctx, slot.qty);
+    case "longIronCondor":     return longIronCondor(slot.k1, slot.k2, slot.k3, slot.k4, ctx, slot.qty);
+    case "shortIronButterfly": return shortIronButterfly(slot.k1, slot.k2, slot.k3, ctx, slot.qty);
+    case "longIronButterfly":  return longIronButterfly(slot.k1, slot.k2, slot.k3, ctx, slot.qty);
+    // Legacy aliases
+    case "ironCondor":     return shortIronCondor(slot.k1, slot.k2, slot.k3, slot.k4, ctx, slot.qty);
+    case "butterfly":      return longCallButterfly(slot.k1, slot.k2, slot.k3, ctx, slot.qty);
   }
 }
 
@@ -108,9 +122,12 @@ export default function DashboardPage() {
 
   // ── Shared market params ──────────────────────────────────────────────────
   const [S, setS] = useState(100);
-  const [sigma, setSigma] = useState(0.3);
+  // IV (sigma) and risk-free rate are hidden from the UI per product direction:
+  // users should see only the P/L profile, not the pricing-model knobs. Kept as
+  // constants so the Black-Scholes engine still prices correctly.
+  const sigma = 0.3;
   const [days, setDays] = useState(30);
-  const [r, setR] = useState(0.045);
+  const r = 0.045;
 
   // Ticker live
   const [tickerSymbol, setTickerSymbol] = useState<string | null>(null);
@@ -172,24 +189,42 @@ export default function DashboardPage() {
   const removeSlot = (id: string) =>
     setSlots((prev) => (prev.length > 2 ? prev.filter((s) => s.id !== id) : prev));
 
-  // Auto-populate spot from ticker + realign strikes to new spot
-  // (prevents deep-ITM/OTM garbage when switching ticker, e.g. AAPL $272 with K=100)
-  if (quote && quote.price > 0 && tickerSymbol) {
-    if (Math.abs(quote.price - S) > 0.005) {
-      setTimeout(() => {
-        const p = quote.price;
-        const k = Math.round(p);
-        setS(p);
-        const realign = <T extends { k1: number; k2: number; k3: number; k4: number }>(prev: T): T =>
-          Math.abs(prev.k1 - p) / p > 0.3
-            ? { ...prev, k1: k, k2: k + 10, k3: k + 20, k4: k - 10 }
-            : prev;
-        setSingleState(realign);
-        setMultiState(realign);
-        setSlots((prev) => prev.map(realign));
-      }, 0);
-    }
-  }
+  // Sync chart to live ticker price ONLY on first connection of a new symbol.
+  // Subsequent price ticks do NOT trigger a chart refresh (user request: chart
+  // must not re-render on live updates). For intentional resync, user clicks
+  // "Sincronizza prezzo" in the ticker bar.
+  const lastSyncedSymbol = useRef<string | null>(null);
+  useEffect(() => {
+    if (!quote || !tickerSymbol || quote.price <= 0) return;
+    if (lastSyncedSymbol.current === tickerSymbol) return;
+    lastSyncedSymbol.current = tickerSymbol;
+    const p = quote.price;
+    const k = Math.round(p);
+    setS(p);
+    const realign = <T extends { k1: number; k2: number; k3: number; k4: number }>(prev: T): T =>
+      Math.abs(prev.k1 - p) / Math.max(p, 1) > 0.3
+        ? { ...prev, k1: k, k2: k + 10, k3: k + 20, k4: k - 10 }
+        : prev;
+    setSingleState(realign);
+    setMultiState(realign);
+    setSlots((prev) => prev.map(realign));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tickerSymbol, quote?.symbol]);
+
+  // Manual re-sync: copy current live quote into the chart spot.
+  const syncSpotFromQuote = useCallback(() => {
+    if (!quote || quote.price <= 0) return;
+    const p = quote.price;
+    const k = Math.round(p);
+    setS(p);
+    const realign = <T extends { k1: number; k2: number; k3: number; k4: number }>(prev: T): T =>
+      Math.abs(prev.k1 - p) / Math.max(p, 1) > 0.3
+        ? { ...prev, k1: k, k2: k + 10, k3: k + 20, k4: k - 10 }
+        : prev;
+    setSingleState(realign);
+    setMultiState(realign);
+    setSlots((prev) => prev.map(realign));
+  }, [quote]);
 
   // ── Derived values for Singola / Multi-Leg tabs ───────────────────────────
   const { preset, k1, k2, k3, k4, qty, customLegs } = activeTabState;
@@ -220,6 +255,20 @@ export default function DashboardPage() {
   const ln: LNParams = { S, T, r, sigma };
   const pop = useMemo(() => (T > 0 ? probabilityOfProfit(legs, ln) : 0), [legs, S, sigma, T, r]);
   const ev = useMemo(() => (T > 0 ? expectedValue(legs, ln) : 0), [legs, S, sigma, T, r]);
+  const pMaxProfit = useMemo(() => (T > 0 ? probabilityOfMaxProfit(legs, ln) : 0), [legs, S, sigma, T, r]);
+  const pMaxLoss = useMemo(() => (T > 0 ? probabilityOfMaxLoss(legs, ln) : 0), [legs, S, sigma, T, r]);
+  // Inside/Outside break-even label: for 2-BE strategies, payoff>0 between BEs = "Inside", else "Outside".
+  const beLabel = useMemo(() => {
+    if (bes.length === 0) return "—";
+    if (bes.length === 1) {
+      const below = strategyPayoff(legs, bes[0] * 0.99);
+      return below < 0 ? `Above $${bes[0].toFixed(2)}` : `Below $${bes[0].toFixed(2)}`;
+    }
+    const sorted = [...bes].sort((a, b) => a - b);
+    const mid = (sorted[0] + sorted[sorted.length - 1]) / 2;
+    const inside = strategyPayoff(legs, mid) > 0;
+    return `${inside ? "Inside" : "Outside"} $${sorted[0].toFixed(2)} – $${sorted[sorted.length - 1].toFixed(2)}`;
+  }, [bes, legs]);
 
   const strikes = Array.from(new Set(legs.filter((l) => l.kind !== "stock").map((l) => l.strike)));
   const activePreset = PRESETS.find((p) => p.id === preset);
@@ -400,6 +449,8 @@ export default function DashboardPage() {
         error={feedError}
         onConnect={handleConnect}
         onDisconnect={handleDisconnect}
+        onSyncSpot={syncSpotFromQuote}
+        chartSpot={S}
       />
 
       {/* Tab bar */}
@@ -435,15 +486,10 @@ export default function DashboardPage() {
 
           {/* Shared market params — same row as single/multi */}
           <Card title="Parametri di Mercato" padding="p-4">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-2 gap-2.5">
               <NumberField label="Spot" value={S} onChange={setS} step={0.5} />
               <NumberField label="Giorni a Scad." value={days} onChange={setDays} step={1} min={0} />
-              <ReadOnlyField label="Vol. Impl." value={`${(sigma * 100).toFixed(0)}%`} hint="Default modello" />
-              <ReadOnlyField label="Risk-Free Rate" value={`${(r * 100).toFixed(2)}%`} hint="T-Bill USA 3M" />
             </div>
-            <p className="text-[11px] text-abtg-muted mt-3 leading-relaxed border-t border-abtg-border pt-2.5">
-              <strong className="text-abtg-navy font-semibold">Cos&apos;è il Risk-Free Rate?</strong> Rendimento di un investimento privo di rischio (T-Bill USA 3 mesi). Usato dal modello Black-Scholes per scontare il valore futuro delle opzioni. Valore attuale ~4–5% (tassi Fed).
-            </p>
           </Card>
 
           {/* Slot cards */}
@@ -627,14 +673,7 @@ export default function DashboardPage() {
                 <NumberField label="Spot" value={S} onChange={setS} step={0.5} />
                 <NumberField label="Giorni a Scad." value={days} onChange={setDays} step={1} min={0} />
                 <NumberField label="Contratti" value={qty} onChange={setQty} step={1} min={1} />
-                <ReadOnlyField label="Vol. Impl." value={`${(sigma * 100).toFixed(0)}%`} hint="Default modello" />
               </div>
-              <div className="mt-2.5">
-                <ReadOnlyField label="Risk-Free Rate" value={`${(r * 100).toFixed(2)}%`} hint="T-Bill USA 3M" full />
-              </div>
-              <p className="text-[11px] text-abtg-muted mt-3 leading-relaxed border-t border-abtg-border pt-2.5">
-                <strong className="text-abtg-navy font-semibold">Cos&apos;è il Risk-Free Rate?</strong> Rendimento di un investimento privo di rischio — tipicamente il <strong>T-Bill USA a 3 mesi</strong>. Serve al modello Black-Scholes per scontare al presente il valore futuro delle opzioni. Valore attuale: <strong>4–5%</strong> (allineato ai tassi Fed). Impatta marginalmente su opzioni a breve, più rilevante su scadenze oltre 6 mesi (vedi Rho).
-              </p>
             </Card>
 
             {/* Strategy preset */}
@@ -782,14 +821,26 @@ export default function DashboardPage() {
                 />
                 <MetricCompact
                   label="Break-Even"
-                  value={bes.length === 0 ? "—" : bes.map((b) => `$${b.toFixed(2)}`).join(" / ")}
+                  value={beLabel}
                   tone="gold"
                 />
                 <MetricCompact
                   label="POP"
                   value={`${(pop * 100).toFixed(1)}%`}
                   tone="gold"
-                  hint="Risk-neutral"
+                  hint="Probabilità di profitto"
+                />
+                <MetricCompact
+                  label="Prob. Profitto Max"
+                  value={`${(pMaxProfit * 100).toFixed(1)}%`}
+                  tone="profit"
+                  hint="Entro 15% del max"
+                />
+                <MetricCompact
+                  label="Prob. Perdita Max"
+                  value={`${(pMaxLoss * 100).toFixed(1)}%`}
+                  tone="loss"
+                  hint="Entro 15% del max"
                 />
                 <MetricCompact
                   label="Valore Atteso"
@@ -802,7 +853,7 @@ export default function DashboardPage() {
                   value={
                     mp.unboundedUp || mp.unboundedDown || mp.maxLoss === 0
                       ? "—"
-                      : fmtRR(mp.maxProfit / mp.maxLoss)
+                      : fmtRR(Math.abs(mp.maxProfit / mp.maxLoss))
                   }
                 />
                 <MetricCompact
@@ -824,20 +875,28 @@ export default function DashboardPage() {
               <PayoffChart data={payoffData} breakEvens={bes} strikes={strikes} spot={S} yDomain={[yMin, yMax]} />
               <div className="flex gap-6 text-xs text-abtg-muted mt-3 justify-center flex-wrap">
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-[2.5px]" style={{ background: "#EF7B10" }} />
-                  A scadenza
+                  <span className="inline-block w-3 h-[2px]" style={{ background: "#16A34A" }} />
+                  Profitto
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-[1.5px]" style={{ background: "#64748B" }} />
-                  Oggi (mark-to-market)
+                  <span className="inline-block w-3 h-[2px]" style={{ background: "#DC2626" }} />
+                  Perdita
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-3 h-[2px] border-t border-dashed" style={{ borderColor: "#16A34A" }} />
+                  Break-even
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-3 h-[2px] border-t border-dashed" style={{ borderColor: "#1F2937" }} />
+                  Strike
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="inline-block w-3 h-[2px]" style={{ background: "#16A34A" }} />
-                  Break-even
+                  Last Price
                 </span>
               </div>
               <p className="text-xs text-abtg-muted mt-3 leading-relaxed border-t border-abtg-border pt-3">
-                <strong className="text-abtg-text font-semibold">Come leggerlo:</strong> la linea arancione mostra il profitto/perdita della strategia al prezzo di scadenza. La linea tratteggiata è il valore attuale (mark-to-market) considerando la volatilità residua. Sopra lo zero sei in profitto, sotto sei in perdita.
+                <strong className="text-abtg-text font-semibold">Come leggerlo:</strong> la linea verde è il profitto a scadenza, la rossa la perdita. La linea verticale verde solida è il prezzo di riferimento (Last Price); quelle tratteggiate nere sono gli strike, quelle tratteggiate verdi i break-even. Il grafico non si aggiorna automaticamente con il tick live — usa <strong>Sincronizza prezzo</strong> in alto.
               </p>
             </Card>
 
@@ -913,29 +972,6 @@ function MetricCompact({
       <span className="text-[10px] uppercase tracking-widest text-abtg-muted font-semibold truncate">{label}</span>
       <span className={`text-lg font-bold leading-tight truncate ${toneClass}`}>{value}</span>
       {hint && <span className="text-[10px] text-abtg-muted leading-tight">{hint}</span>}
-    </div>
-  );
-}
-
-/** Read-only parameter tile — for values locked by the model (IV, Risk-Free). */
-function ReadOnlyField({
-  label, value, hint, full = false,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  full?: boolean;
-}) {
-  return (
-    <div className={full ? "col-span-2" : ""}>
-      <label className="abtg-label">{label}</label>
-      <div
-        className="bg-abtg-bg border border-abtg-border rounded-lg px-3 py-2 flex items-baseline justify-between gap-2 cursor-not-allowed select-none"
-        title={hint ? `${hint} — non modificabile` : "Non modificabile"}
-      >
-        <span className="font-mono font-semibold text-abtg-text text-sm">{value}</span>
-        {hint && <span className="text-[10px] text-abtg-muted uppercase tracking-wide font-medium">{hint}</span>}
-      </div>
     </div>
   );
 }
