@@ -873,30 +873,30 @@ export default function DashboardPage() {
             {/* Payoff chart */}
             <Card title="Diagramma Payoff" padding="p-4">
               <PayoffChart data={payoffData} breakEvens={bes} strikes={strikes} spot={S} yDomain={[yMin, yMax]} />
-              <div className="flex gap-6 text-xs text-abtg-muted mt-3 justify-center flex-wrap">
+              <div className="flex gap-5 text-xs text-abtg-text mt-4 justify-center flex-wrap font-medium">
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-[2px]" style={{ background: "#16A34A" }} />
+                  <span className="inline-block w-4 h-[3px] rounded-sm" style={{ background: "#15803D" }} />
                   Profitto
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-[2px]" style={{ background: "#DC2626" }} />
+                  <span className="inline-block w-4 h-[3px] rounded-sm" style={{ background: "#B91C1C" }} />
                   Perdita
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-[2px] border-t border-dashed" style={{ borderColor: "#16A34A" }} />
+                  <svg width="16" height="4" aria-hidden="true"><line x1="0" y1="2" x2="16" y2="2" stroke="#EA580C" strokeWidth="2" strokeDasharray="5 3" /></svg>
                   Break-even
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-[2px] border-t border-dashed" style={{ borderColor: "#1F2937" }} />
+                  <svg width="16" height="4" aria-hidden="true"><line x1="0" y1="2" x2="16" y2="2" stroke="#475569" strokeWidth="1.5" strokeDasharray="4 3" /></svg>
                   Strike
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-[2px]" style={{ background: "#16A34A" }} />
+                  <span className="inline-block w-4 h-[3px] rounded-sm" style={{ background: "#1D4ED8" }} />
                   Last Price
                 </span>
               </div>
               <p className="text-xs text-abtg-muted mt-3 leading-relaxed border-t border-abtg-border pt-3">
-                <strong className="text-abtg-text font-semibold">Come leggerlo:</strong> la linea verde è il profitto a scadenza, la rossa la perdita. La linea verticale verde solida è il prezzo di riferimento (Last Price); quelle tratteggiate nere sono gli strike, quelle tratteggiate verdi i break-even. Il grafico non si aggiorna automaticamente con il tick live — usa <strong>Sincronizza prezzo</strong> in alto.
+                <strong className="text-abtg-text font-semibold">Come leggerlo:</strong> linea verde = profitto a scadenza, rossa = perdita. Verticale blu solida = prezzo di riferimento (Last Price). Tratteggio grigio = strike, tratteggio arancione = break-even. Il grafico non si aggiorna automaticamente sui tick live — usa <strong>Sincronizza prezzo</strong> nella barra in alto.
               </p>
             </Card>
 
