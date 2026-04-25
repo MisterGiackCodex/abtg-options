@@ -66,11 +66,12 @@ function PayoffChartImpl({
 
   // Stagger strike label positions vertically when clustered (< 6% of X range).
   const sortedStrikes = [...strikes].sort((a, b) => a - b);
-  const strikeLabelPos: Array<"insideBottom" | "bottom"> = sortedStrikes.map((k, i) => {
+  const strikeLabelPos: Array<"insideBottom" | "bottom"> = [];
+  for (let i = 0; i < sortedStrikes.length; i++) {
     const prev = sortedStrikes[i - 1];
-    const tooClose = prev !== undefined && (k - prev) / xRange < 0.06;
-    return tooClose && strikeLabelPos[i - 1] === "bottom" ? "insideBottom" : "bottom";
-  });
+    const tooClose = prev !== undefined && (sortedStrikes[i] - prev) / xRange < 0.06;
+    strikeLabelPos.push(tooClose && strikeLabelPos[i - 1] === "bottom" ? "insideBottom" : "bottom");
+  }
 
   return (
     <div className="h-[320px] sm:h-[380px] lg:h-[440px] w-full">
