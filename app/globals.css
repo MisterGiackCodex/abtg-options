@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html, body {
+  background: #F5F7FA;
+  color: #1A202C;
+  font-family: var(--font-roboto), Roboto, system-ui, -apple-system, Segoe UI, sans-serif;
+  font-weight: 400;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+}
+
+.abtg-card {
+  @apply bg-abtg-surface border border-abtg-border rounded-xl shadow-card;
+}
+
+.abtg-input {
+  @apply bg-white border border-abtg-border rounded-lg px-3 py-2 text-abtg-text w-full focus:outline-none focus:border-abtg-navy focus:ring-2 focus:ring-abtg-navy/10 transition;
+}
+
+.abtg-btn {
+  @apply px-4 py-2 rounded-lg border border-abtg-border bg-white text-abtg-text hover:border-abtg-navy hover:text-abtg-navy transition text-sm font-medium;
+}
+
+.abtg-btn-primary {
+  @apply px-4 py-2 rounded-lg bg-abtg-gold text-white font-semibold hover:bg-abtg-goldDim transition text-sm;
+}
+
+.abtg-btn-navy {
+  @apply px-4 py-2 rounded-lg bg-abtg-navy text-white font-semibold hover:bg-abtg-navyDark transition text-sm;
+}
+
+.abtg-tab {
+  @apply px-4 py-2.5 border-b-2 border-transparent text-abtg-muted hover:text-abtg-navy cursor-pointer transition font-medium text-sm;
+}
+
+.abtg-tab-active {
+  @apply border-abtg-navy text-abtg-navy;
+}
+
+.abtg-label {
+  @apply text-xs uppercase tracking-widest text-abtg-muted mb-1.5 block font-semibold;
+}
+
+.abtg-metric {
+  @apply text-xl font-bold text-abtg-text;
+}
+
+/* Print styles */
+@media print {
+  body {
+    background: white !important;
+    color: #1a1a1a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  header, footer, nav, .abtg-btn, button, .abtg-tab {
+    display: none !important;
+  }
+  .abtg-card {
+    border-color: #ccc !important;
+    background: white !important;
+    box-shadow: none !important;
+  }
+  .text-abtg-text { color: #1a1a1a !important; }
+  .text-abtg-muted { color: #666 !important; }
+  .text-abtg-gold { color: #C9A84C !important; }
+}

@@ -1,0 +1,147 @@
+{
+  "trades": [
+    {
+      "id": "demo-001",
+      "name": "AAPL Bull Call Spread Maggio",
+      "ticker": "AAPL",
+      "entryDate": "2026-04-10",
+      "expirationDate": "2026-05-16",
+      "legs": [
+        {
+          "id": "leg-001a",
+          "kind": "call",
+          "side": "long",
+          "strike": 210,
+          "entryPremium": 5.20,
+          "currentPremium": 6.80,
+          "quantity": 2,
+          "status": "open"
+        },
+        {
+          "id": "leg-001b",
+          "kind": "call",
+          "side": "short",
+          "strike": 220,
+          "entryPremium": 2.10,
+          "currentPremium": 2.40,
+          "quantity": 2,
+          "status": "open"
+        }
+      ],
+      "marketCtxAtEntry": { "S": 212.50, "sigma": 0.28, "r": 0.045 },
+      "notes": "Bias rialzista moderato su AAPL dopo earnings Q2. Target: rottura di $220 entro scadenza.",
+      "status": "open"
+    },
+    {
+      "id": "demo-002",
+      "name": "SPY Iron Condor Giugno",
+      "ticker": "SPY",
+      "entryDate": "2026-04-05",
+      "expirationDate": "2026-06-19",
+      "legs": [
+        {
+          "id": "leg-002a",
+          "kind": "put",
+          "side": "short",
+          "strike": 510,
+          "entryPremium": 3.50,
+          "currentPremium": 4.80,
+          "quantity": 1,
+          "status": "open"
+        },
+        {
+          "id": "leg-002b",
+          "kind": "put",
+          "side": "long",
+          "strike": 500,
+          "entryPremium": 2.10,
+          "currentPremium": 3.20,
+          "quantity": 1,
+          "status": "open"
+        },
+        {
+          "id": "leg-002c",
+          "kind": "call",
+          "side": "short",
+          "strike": 560,
+          "entryPremium": 3.20,
+          "currentPremium": 4.10,
+          "quantity": 1,
+          "status": "open"
+        },
+        {
+          "id": "leg-002d",
+          "kind": "call",
+          "side": "long",
+          "strike": 570,
+          "entryPremium": 1.80,
+          "currentPremium": 2.50,
+          "quantity": 1,
+          "status": "open"
+        }
+      ],
+      "marketCtxAtEntry": { "S": 535.00, "sigma": 0.18, "r": 0.045 },
+      "notes": "Mercato in range. Credito netto incassato. Rischio se SPY esce dal range 510-560.",
+      "status": "open"
+    },
+    {
+      "id": "demo-003",
+      "name": "MSFT Covered Call Aprile",
+      "ticker": "MSFT",
+      "entryDate": "2026-03-15",
+      "expirationDate": "2026-04-17",
+      "legs": [
+        {
+          "id": "leg-003a",
+          "kind": "stock",
+          "side": "long",
+          "strike": 0,
+          "entryPremium": 420.00,
+          "currentPremium": 428.50,
+          "quantity": 1,
+          "status": "closed",
+          "closePrice": 428.50
+        },
+        {
+          "id": "leg-003b",
+          "kind": "call",
+          "side": "short",
+          "strike": 430,
+          "entryPremium": 4.50,
+          "currentPremium": 0.15,
+          "quantity": 1,
+          "status": "closed",
+          "closePrice": 0.15
+        }
+      ],
+      "marketCtxAtEntry": { "S": 420.00, "sigma": 0.22, "r": 0.045 },
+      "notes": "Covered call chiusa in profitto. La call e scaduta OTM, premio incassato interamente.",
+      "status": "closed",
+      "closedDate": "2026-04-17"
+    },
+    {
+      "id": "demo-004",
+      "name": "TSLA Long Put Protezione",
+      "ticker": "TSLA",
+      "entryDate": "2026-03-01",
+      "expirationDate": "2026-04-04",
+      "legs": [
+        {
+          "id": "leg-004a",
+          "kind": "put",
+          "side": "long",
+          "strike": 170,
+          "entryPremium": 6.20,
+          "currentPremium": 0,
+          "quantity": 3,
+          "status": "expired"
+        }
+      ],
+      "marketCtxAtEntry": { "S": 178.00, "sigma": 0.55, "r": 0.045 },
+      "notes": "Put protettiva su posizione azionaria TSLA. Scaduta OTM, premio perso. TSLA ha chiuso a $185.",
+      "status": "expired"
+    }
+  ],
+  "version": 1,
+  "exportedAt": "2026-04-18T10:00:00.000Z"
+}
